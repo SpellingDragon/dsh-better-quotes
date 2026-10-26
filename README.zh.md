@@ -245,7 +245,7 @@ npm pack
 - `src/client/BundleQuote.tsx` — 已发送引用卡与定位。
 - `src/client/candidates.ts` — Chat 快照投影。
 - `src/client/styles.ts` — 带 disposer 的插件样式。
-- `tests/` — 27 个聚焦测试，覆盖 bundle、规则、投影、抽屉、动作注册和生命周期。
+- `tests/` — 29 个聚焦测试，覆盖 bundle、规则、投影、抽屉、引用卡、动作注册和生命周期。
 
 ## 许可证
 

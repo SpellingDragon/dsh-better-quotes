@@ -245,7 +245,7 @@ npm pack
 - `src/client/BundleQuote.tsx` — sent bundle card and locate.
 - `src/client/candidates.ts` — Chat snapshot projection.
 - `src/client/styles.ts` — plugin stylesheet with a disposer.
-- `tests/` — 27 focused tests across bundle, rule, projection, drawer, action registration, and lifecycle.
+- `tests/` — 29 focused tests across bundle, rule, projection, drawer, bundle card, action registration, and lifecycle.
 
 ## License
 
