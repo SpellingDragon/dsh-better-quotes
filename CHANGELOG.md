@@ -7,6 +7,10 @@
 - A composer quote now leads with a one-line summary (message count and previews), so the quote chip reads as a label instead of raw envelope tags; the bundle the model receives is unchanged.
 - The bundle rule owns that summary line when the message is sent, so the transcript shows only the bundle card.
 
+### Fixed
+
+- The right-Sidebar selector sizes to its content instead of stretching across the pane: short lists no longer leave a tall blank region above the footer, the box never overflows its host body, and only the message list scrolls.
+
 ## 0.4.0 - 2026-10-26
 
 ### Changed

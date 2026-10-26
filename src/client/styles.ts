@@ -32,7 +32,8 @@ const CSS = `
 .bq-drawer {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  box-sizing: border-box;
+  max-height: 100%;
   min-height: 0;
   padding: 12px 12px 0;
   font-size: 13px;
@@ -40,7 +41,7 @@ const CSS = `
 
 .bq-drawer-section {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
@@ -103,25 +104,27 @@ const CSS = `
 
 .bq-list {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
   margin: 0;
   padding: 0 0 4px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 
 .bq-target-list {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   flex-direction: column;
   gap: 6px;
   min-height: 0;
   margin: 0;
   padding: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 
