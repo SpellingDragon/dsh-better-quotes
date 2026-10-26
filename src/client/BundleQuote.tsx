@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import {
   Button, IconContextInjectionOutlineRegular, Tag,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { ChatConversationViewNode, ChatNode, ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { UserTextNodeProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { BundleItem } from './bundle.ts'
@@ -29,12 +30,7 @@ export function BundleQuote({ node, useConversation, sessionId, t }: BundleQuote
 
   const locate = (item: BundleItem): void => {
     if (!sameSession) return
-    const target = chat?.nodes.values().find((candidate) => {
-      const data = candidate.data as { messageId?: unknown; seq?: number }
-      return item.messageId === undefined
-        ? data.seq === item.seq
-        : String(data.messageId) === item.messageId
-    })
+    const target = findSourceNode(chat, item)
     if (target === undefined || !locateMessage(target.key)) {
       setFailure(true)
       return
@@ -89,6 +85,28 @@ export function BundleQuote({ node, useConversation, sessionId, t }: BundleQuote
       )}
     </span>
   )
+}
+
+function findSourceNode(chat: ChatSnapshot | undefined, item: BundleItem): ChatConversationViewNode | undefined {
+  return chat?.nodes.values().find(candidate => matchesItem(candidate, item))
+}
+
+function matchesItem(candidate: ChatConversationViewNode, item: BundleItem): boolean {
+  if (candidate.kind === 'user' || candidate.kind === 'steering') {
+    const data = (candidate as ChatNode<'user' | 'steering'>).data
+    const messageId = (data as typeof data & { messageId?: unknown }).messageId
+    return item.messageId !== undefined && messageId !== undefined
+      ? String(messageId) === item.messageId
+      : data.seq === item.seq
+  }
+  if (candidate.kind === 'assistant-step') {
+    const final = (candidate as ChatNode<'assistant-step'>).data.finalNode
+    if (final === undefined) return false
+    return item.messageId !== undefined && final.messageId !== undefined
+      ? String(final.messageId) === item.messageId
+      : final.seq === item.seq
+  }
+  return false
 }
 
 function roleLabel(item: BundleItem, t: BundleQuoteProps['t']): string {

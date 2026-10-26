@@ -37,18 +37,18 @@ npm run build
 npm pack
 ```
 
-This produces `dsh-better-quotes-0.2.0.tgz`. `npm pack` runs the build through `prepack`.
+This produces `dsh-better-quotes-0.2.1.tgz`. `npm pack` runs the build through `prepack`.
 
 ### Install into DeepSeek Harness
 
 ```sh
-dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.2.0.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.2.1.tgz
 ```
 
 From a DSH source checkout:
 
 ```sh
-pnpm dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.2.0.tgz
+pnpm dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.2.1.tgz
 ```
 
 Restart `dsh web` or refresh the browser.
@@ -245,7 +245,7 @@ npm pack
 - `src/client/BundleQuote.tsx` — sent bundle card and locate.
 - `src/client/candidates.ts` — Chat snapshot projection.
 - `src/client/styles.ts` — plugin stylesheet with a disposer.
-- `tests/` — 29 focused tests across bundle, rule, projection, drawer, bundle card, action registration, and lifecycle.
+- `tests/` — 30 focused tests across bundle, rule, projection, drawer, bundle card, action registration, and lifecycle.
 
 ## License
 

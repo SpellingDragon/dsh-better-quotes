@@ -37,18 +37,18 @@ npm run build
 npm pack
 ```
 
-生成 `dsh-better-quotes-0.2.0.tgz`。`npm pack` 会通过 `prepack` 自动构建。
+生成 `dsh-better-quotes-0.2.1.tgz`。`npm pack` 会通过 `prepack` 自动构建。
 
 ### 安装到 DeepSeek Harness
 
 ```sh
-dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.2.0.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.2.1.tgz
 ```
 
 从 DSH 源码仓库运行：
 
 ```sh
-pnpm dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.2.0.tgz
+pnpm dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.2.1.tgz
 ```
 
 重启 `dsh web` 或刷新浏览器。
@@ -245,7 +245,7 @@ npm pack
 - `src/client/BundleQuote.tsx` — 已发送引用卡与定位。
 - `src/client/candidates.ts` — Chat 快照投影。
 - `src/client/styles.ts` — 带 disposer 的插件样式。
-- `tests/` — 29 个聚焦测试，覆盖 bundle、规则、投影、抽屉、引用卡、动作注册和生命周期。
+- `tests/` — 30 个聚焦测试，覆盖 bundle、规则、投影、抽屉、引用卡、动作注册和生命周期。
 
 ## 许可证
 

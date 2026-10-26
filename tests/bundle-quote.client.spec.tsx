@@ -92,6 +92,23 @@ describe('BundleQuote', () => {
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
   })
 
+  it('locates an assistant source through its finalNode identity', () => {
+    const ui = mount()
+    const target = document.createElement('div')
+    target.dataset.chatNodeKey = 'assistant-key'
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(target, 'scrollIntoView', { value: scrollIntoView })
+    document.body.append(target)
+
+    try {
+      fireEvent.click(ui.getAllByRole('button', { name: zh['bundle.locate'] })[1]!)
+    } finally {
+      target.remove()
+    }
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
+  })
+
   it('labels a foreign source and hides locate', () => {
     const ui = mount(bundle('session-2'))
 

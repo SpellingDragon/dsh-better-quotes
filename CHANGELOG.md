@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-10-26
+
+### Fixed
+
+- Same-Session locate for assistant messages: the durable identity lives on the assistant node's `finalNode`, not on the node payload, so earlier lookups never matched and always reported the source as not visible. Locate now reads `finalNode.messageId` for assistant rows and falls back to `seq` when either side omits an identity.
+
 ## 0.2.0 - 2026-10-26
 
 ### Changed
