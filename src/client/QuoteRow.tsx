@@ -1,7 +1,7 @@
-/** One selectable message row shared by the quotes drawer. */
+/** One selectable message row: clicking anywhere toggles selection. */
 import type { ReactNode } from 'react'
 import {
-  Button, Checkbox, fileSizeText, IconLinkOutlineRegular, IconPaperclipOutlineRegular, IconSkillOutlineRegular, Tag,
+  Checkbox, fileSizeText, IconPaperclipOutlineRegular, IconSkillOutlineRegular, Tag,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { QuoteAttachment, QuoteCandidate } from './candidates.ts'
@@ -14,26 +14,29 @@ export interface QuoteRowProps {
   readonly candidate: QuoteCandidate
   readonly checked: boolean
   readonly onToggle: (next: boolean) => void
-  readonly onLocate: () => void
   readonly t: Translate
 }
 
 /**
  * Render one message row with its role, time, preview, and multimodal facts.
- * @param props - candidate, selection state, actions, and copy.
+ * @param props - candidate, selection state, toggle action, and copy.
  * @returns the row.
  */
-export function QuoteRow({ candidate, checked, onToggle, onLocate, t }: QuoteRowProps): ReactNode {
+export function QuoteRow({ candidate, checked, onToggle, t }: QuoteRowProps): ReactNode {
   const speaker = candidate.steering === true
     ? t('row.steering')
     : candidate.role === 'user' ? t('row.user') : t('row.assistant')
   const time = formatClock(candidate.time)
   return (
-    <li className="bq-row" data-selected={checked || undefined}>
+    <li
+      className="bq-row"
+      data-selected={checked || undefined}
+      onClick={() => { onToggle(!checked) }}
+    >
       <div className="bq-row-head">
         <Checkbox
           checked={checked}
-          onChange={onToggle}
+          onChange={() => {}}
           label={t('row.select', { speaker, time })}
           className="bq-checkbox"
         />
@@ -42,16 +45,6 @@ export function QuoteRow({ candidate, checked, onToggle, onLocate, t }: QuoteRow
           <span className="bq-model">{`${candidate.route.provider}/${candidate.route.model}`}</span>
         )}
         <time className="bq-time" dateTime={new Date(candidate.time).toISOString()}>{time}</time>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="bq-locate"
-          aria-label={t('row.locate')}
-          title={t('row.locate')}
-          onClick={onLocate}
-        >
-          <IconLinkOutlineRegular size={14} />
-        </Button>
       </div>
       <p className="bq-preview">{candidate.text.trim() === '' ? t('row.noText') : candidate.text}</p>
       {candidate.attachments.length > 0 && (

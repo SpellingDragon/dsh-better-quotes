@@ -1,12 +1,26 @@
 // @vitest-environment jsdom
-/** The browser entry registers the drawer, bundle card, assistant action, and forwarding verb. */
+/** The browser entry registers the inline picker, bundle card, assistant actions, and forwarding verb. */
 import { describe, expect, it, vi } from 'vitest'
-import { MessageId } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
-import { apply, inject, TAB_ID, TAB_KIND } from '../src/client/index.ts'
+import { apply, inject } from '../src/client/index.ts'
 import { NS, zh } from '../src/client/locales.ts'
 import { BUNDLE_RULE_ID } from '../src/client/quote-rule.ts'
 import { apply as hostApply } from '../src/index.ts'
+
+vi.mock('@deepseek-ai/dsh-client-store', () => {
+  let state: unknown
+  return {
+    createSnapshotStore: (init: unknown) => {
+      state = init
+      return {
+        getSnapshot: () => state,
+        subscribe: () => () => undefined,
+        set: (next: unknown) => { state = next },
+        update: (mutator: (draft: unknown) => void) => { mutator(state) },
+      }
+    },
+  }
+})
 
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
   const Stub = () => null
@@ -17,6 +31,8 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
     SegmentedControl: Stub,
     Tag: Stub,
     Tooltip: Stub,
+    IconChecklistOutlineRegular: Stub,
+    IconCloseOutlineRegular: Stub,
     IconContextInjectionOutlineRegular: Stub,
     IconLinkOutlineRegular: Stub,
     IconPaperclipOutlineRegular: Stub,
@@ -27,7 +43,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
 })
 
 describe('dsh-better-quotes browser plugin', () => {
-  it('registers every surface and forwards through the sessions service', async () => {
+  it('registers every surface, opens the inline picker, and forwards through the sessions service', async () => {
     hostApply()
     const effects: (() => void)[] = []
     const entries: Record<string, { options: Record<string, unknown>; component: unknown }[]> = {}
@@ -37,18 +53,6 @@ describe('dsh-better-quotes browser plugin', () => {
       _options: unknown,
       operation: (reference: unknown) => Promise<unknown>,
     ) => operation({ binding: { session: { prompt } } }))
-    const list = {
-      getSnapshot: () => ({ ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {} }),
-      subscribe: () => () => undefined,
-    }
-    interface TabDefinition {
-      id: string
-      kind: string
-      title: () => string
-      guide: readonly { title: () => string; description: () => string }[]
-    }
-    const registerTab = vi.fn((_definition: TabDefinition) => () => undefined)
-    const openTab = vi.fn()
     const registerRule = vi.fn(() => () => undefined)
     const registerLocale = vi.fn(() => () => undefined)
     const ctx = {
@@ -62,9 +66,7 @@ describe('dsh-better-quotes browser plugin', () => {
         bind: () => (key: keyof typeof zh) => zh[key],
       },
       uiConversation: { userText: { register: registerRule } },
-      sessions: { list, using },
-      sidebarRight: { openTab },
-      sidebarRightTabs: { register: registerTab },
+      sessions: { using },
       slots: {
         inject: (_name: string, register: () => () => void) => register(),
         register: (options: Record<string, unknown>, component: unknown) => {
@@ -78,25 +80,31 @@ describe('dsh-better-quotes browser plugin', () => {
 
     apply(ctx as never)
 
-    expect(inject).toEqual(['slots', 'locale', 'uiConversation', 'sessions', 'sidebarRight', 'sidebarRightTabs'])
+    expect(inject).toEqual(['slots', 'locale', 'uiConversation', 'sessions'])
     expect(registerLocale).toHaveBeenCalledWith(NS, expect.objectContaining({ zh }))
     expect(registerRule).toHaveBeenCalledWith(expect.objectContaining({ id: BUNDLE_RULE_ID }))
     expect(document.getElementById('dsh-better-quotes-styles')).not.toBeNull()
 
-    const definition = registerTab.mock.calls[0]![0]
-    expect(definition.id).toBe(TAB_ID)
-    expect(definition.kind).toBe(TAB_KIND)
-    expect(definition.title()).toBe(zh['tab.title'])
-    expect(definition.guide[0]?.description()).toBe(zh['tab.description'])
-
-    const drawer = entries['sidebar.right.pane.tab']?.[0]
-    expect(drawer?.options.key).toBe(TAB_ID)
-    const drawerFace = (drawer?.options.inject as (() => {
-      hooks: { sessionList: unknown }
+    const dock = entries['conversation.input.dock']?.[0]
+    expect(dock?.options.id).toBe('better-quotes')
+    const dockFace = (dock?.options.inject as () => {
+      hooks: { picker: { getSnapshot(): { open: boolean; focus: string | null } } }
+      close: () => void
       forward: (target: SessionId, text: string) => Promise<void>
-    }) | undefined)?.()
-    expect(drawerFace?.hooks.sessionList).toBe(list)
-    await drawerFace?.forward(SessionId('session-2'), 'forwarded')
+    })()
+    expect(dockFace.hooks.picker.getSnapshot()).toEqual({ open: false, focus: null })
+
+    const action = entries['conversation.chat.assistant-actions']?.[0]
+    expect(action?.options.id).toBe('better-quotes')
+    const actionFace = (action?.options.inject as () => {
+      openPicker: (focus?: string) => void
+    })()
+    actionFace.openPicker('message-1')
+    expect(dockFace.hooks.picker.getSnapshot()).toEqual({ open: true, focus: 'message-1' })
+    dockFace.close()
+    expect(dockFace.hooks.picker.getSnapshot()).toEqual({ open: false, focus: null })
+
+    await dockFace.forward(SessionId('session-2'), 'forwarded')
     expect(using).toHaveBeenCalledWith(
       SessionId('session-2'),
       { source: 'betterQuotes' },
@@ -106,14 +114,6 @@ describe('dsh-better-quotes browser plugin', () => {
 
     const card = entries['conversation.user.text.node']?.[0]
     expect(card?.options.key).toBe(BUNDLE_RULE_ID)
-
-    const action = entries['conversation.chat.assistant-actions']?.[0]
-    expect(action?.options.id).toBe('better-quotes')
-    const actionFace = (action?.options.inject as (() => {
-      openQuotes: (messageId: string) => void
-    }) | undefined)?.()
-    actionFace?.openQuotes(MessageId('message-1'))
-    expect(openTab).toHaveBeenCalledWith(TAB_KIND, { params: { select: 'message-1' } })
 
     for (const dispose of effects) dispose()
     expect(document.getElementById('dsh-better-quotes-styles')).toBeNull()

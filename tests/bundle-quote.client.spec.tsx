@@ -71,9 +71,11 @@ function mount(data = bundle()) {
 }
 
 describe('BundleQuote', () => {
-  it('renders the bundle and locates a same-Session source', () => {
+  it('stays collapsed by default, expands, and locates a same-Session source by item click', () => {
     const ui = mount()
-    expect(ui.getByText(zh['bundle.title'].replace('{count}', '2'))).toBeTruthy()
+    const summary = ui.getByRole('button', { name: new RegExp(zh['bundle.title'].replace('{count}', '2')) })
+    expect(ui.queryByText('first')).toBeNull()
+    fireEvent.click(summary)
     expect(ui.getByText('first')).toBeTruthy()
     expect(ui.getByText('second')).toBeTruthy()
 
@@ -84,7 +86,7 @@ describe('BundleQuote', () => {
     document.body.append(target)
 
     try {
-      fireEvent.click(ui.getAllByRole('button', { name: zh['bundle.locate'] })[0]!)
+      fireEvent.click(ui.getByText('first'))
     } finally {
       target.remove()
     }
@@ -94,6 +96,7 @@ describe('BundleQuote', () => {
 
   it('locates an assistant source through its finalNode identity', () => {
     const ui = mount()
+    fireEvent.click(ui.getByRole('button', { name: new RegExp(zh['bundle.title'].replace('{count}', '2')) }))
     const target = document.createElement('div')
     target.dataset.chatNodeKey = 'assistant-key'
     const scrollIntoView = vi.fn()
@@ -101,7 +104,7 @@ describe('BundleQuote', () => {
     document.body.append(target)
 
     try {
-      fireEvent.click(ui.getAllByRole('button', { name: zh['bundle.locate'] })[1]!)
+      fireEvent.click(ui.getByText('second'))
     } finally {
       target.remove()
     }
@@ -109,10 +112,12 @@ describe('BundleQuote', () => {
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
   })
 
-  it('labels a foreign source and hides locate', () => {
+  it('labels a foreign source and renders items without locate buttons', () => {
     const ui = mount(bundle('session-2'))
+    fireEvent.click(ui.getByRole('button', { name: new RegExp(zh['bundle.title'].replace('{count}', '2')) }))
 
     expect(ui.getByText(zh['bundle.otherSession'])).toBeTruthy()
-    expect(ui.queryByRole('button', { name: zh['bundle.locate'] })).toBeNull()
+    expect(ui.getByText('first')).toBeTruthy()
+    expect(ui.getAllByRole('button')).toHaveLength(1)
   })
 })

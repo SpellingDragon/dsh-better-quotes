@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0 - 2026-10-26
+
+### Changed
+
+- Replaced the two-icon and sidebar flow with one Fork-side action: click quotes the message, press-and-hold (or `Shift+Enter`) opens multi-select.
+- Moved multi-select into a compact picker above the composer; removed the right-sidebar drawer, guide entry, and mode switch.
+- Picker rows toggle selection by clicking the row; one all/none control replaces separate Select all and Clear actions.
+- Sent bundle cards now start collapsed and locate a source when its item is clicked instead of showing a per-item locate button.
+- Source locate now unfolds a folded process group and drives the real vertical scrollport, so assistant sources jump visibly.
+
+### Fixed
+
+- The preselect effect no longer re-selects an already selected row every render, avoiding a render loop with fresh snapshots.
+
 ## 0.2.1 - 2026-10-26
 
 ### Fixed

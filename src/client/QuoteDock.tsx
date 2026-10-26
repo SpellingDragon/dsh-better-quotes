@@ -1,22 +1,22 @@
-/** Right-sidebar drawer for selecting messages, quoting them, or forwarding them to another Session. */
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
+/** Conversation-inline picker above the composer: select messages, quote them, or forward them. */
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  Button, IconSearchOutlineRegular, Input, SegmentedControl,
+  Button, IconCloseOutlineRegular, IconSearchOutlineRegular, Input,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { formatBundle, formatForwardPrompt } from './bundle.ts'
 import { collectCandidates, type QuoteCandidate } from './candidates.ts'
 import { insertQuoteText } from './input.ts'
-import { locateMessage } from './locate.ts'
 import type { NS } from './locales.ts'
+import type { PickerState } from './picker.ts'
 import { QuoteRow } from './QuoteRow.tsx'
 
-/** Operations and live Session catalog injected by the browser plugin. */
-export interface QuoteDrawerInjected {
-  hooks: { sessionList: ObservableSnapshot<SessionListState> }
+/** Picker state, close verb, and cross-Session forwarding injected by the browser plugin. */
+export interface QuoteDockInjected {
+  hooks: { picker: { getSnapshot(): PickerState; subscribe(listener: () => void): () => void } }
+  readonly close: () => void
   /**
    * Send one forwarded bundle into a target Session.
    * @param targetId - target Session.
@@ -25,30 +25,27 @@ export interface QuoteDrawerInjected {
   readonly forward: (targetId: SessionId, text: string) => Promise<void>
 }
 
-/** Composed props for the quotes drawer body. */
-export type QuoteDrawerProps =
-  PropsRuntime<'sidebar.right.pane.tab'>
+/** Composed props for the inline picker dock. */
+export type QuoteDockProps =
+  PropsRuntime<'conversation.input.dock'>
   & PropsLocale<typeof NS>
-  & InjectFace<QuoteDrawerInjected>
+  & InjectFace<QuoteDockInjected>
 
-type Mode = 'quote' | 'forward'
 type Step = 'select' | 'target'
-type Failure = 'insert' | 'forward' | 'locate'
+type Failure = 'insert' | 'forward'
 type Status = 'inserted' | 'forwarded'
 
 /**
- * Render the drawer: select messages, then quote into the composer or forward to another Session.
- * @param props - tab runtime, Chat/Session hooks, input actions, forwarding verb, and copy.
- * @returns the drawer body.
+ * Render the inline picker above the composer while it is open.
+ * @param props - Chat/Session seats, input actions, picker state, forwarding verb, and copy.
+ * @returns the picker panel, or null while closed.
  */
-export function QuoteDrawer({
-  sessionId, useConversation, inputActions, useTabInfo, useSessionList, forward, t,
-}: QuoteDrawerProps): ReactNode {
-  const tabInfo = useTabInfo()
+export function QuoteDock({
+  sessionId, useConversation, useSessions, inputActions, usePicker, close, forward, t,
+}: QuoteDockProps): ReactNode {
+  const picker = usePicker(state => state)
   const chat = useConversation(snapshot => snapshot.views.get('chat'))
-  const sessions = useSessionList(state => state)
-  const modeId = useId()
-  const [mode, setMode] = useState<Mode>('quote')
+  const sessions = useSessions(state => state)
   const [step, setStep] = useState<Step>('select')
   const [query, setQuery] = useState('')
   const [targetQuery, setTargetQuery] = useState('')
@@ -58,7 +55,6 @@ export function QuoteDrawer({
   const [status, setStatus] = useState<Status | null>(null)
   const [forwardedTo, setForwardedTo] = useState('')
   const [sending, setSending] = useState(false)
-  const [pendingSelect, setPendingSelect] = useState<string | undefined>()
 
   const candidates = useMemo(() => collectCandidates(chat), [chat])
   const filtered = useMemo(() => {
@@ -71,6 +67,7 @@ export function QuoteDrawer({
     [available, selectedKeys],
   )
   const chosen = useMemo(() => candidates.filter(candidate => selected.has(candidate.key)), [candidates, selected])
+  const allShown = filtered.length > 0 && filtered.every(candidate => selected.has(candidate.key))
   const targets = useMemo(() => {
     const needle = targetQuery.trim().toLowerCase()
     return sessions.ids
@@ -84,25 +81,27 @@ export function QuoteDrawer({
   }, [sessionId, sessions, targetQuery])
   const selectedTarget = targetId === undefined ? undefined : sessions.byId[targetId]
 
-  const selectionParam = (tabInfo.tab.navigation.params as { select?: string } | undefined)?.select
   useEffect(() => {
-    setPendingSelect(selectionParam)
-  }, [selectionParam, tabInfo.tab.navigation.revision])
-  useEffect(() => {
-    if (pendingSelect === undefined) return
-    const candidate = candidates.find(item => item.messageId === pendingSelect)
-    if (candidate === undefined) return
-    setSelectedKeys(new Set([candidate.key]))
-    setPendingSelect(undefined)
-  }, [candidates, pendingSelect])
-
-  const changeMode = (next: Mode): void => {
-    setMode(next)
+    if (picker.open) return
     setStep('select')
+    setQuery('')
+    setTargetQuery('')
+    setSelectedKeys(new Set())
+    setTargetId(undefined)
     setFailure(null)
     setStatus(null)
     setForwardedTo('')
-    setTargetId(undefined)
+  }, [picker.open])
+
+  useEffect(() => {
+    if (!picker.open || picker.focus === null) return
+    const candidate = candidates.find(item => item.messageId === picker.focus)
+    if (candidate === undefined || selected.has(candidate.key)) return
+    setSelectedKeys(new Set([candidate.key]))
+  }, [candidates, picker.focus, picker.open, selected])
+
+  const toggleAll = (): void => {
+    setSelectedKeys(allShown ? new Set() : new Set(filtered.map(candidate => candidate.key)))
   }
 
   const insert = (): void => {
@@ -115,15 +114,6 @@ export function QuoteDrawer({
     setFailure(null)
     setStatus('inserted')
     setSelectedKeys(new Set())
-  }
-
-  const locate = (candidate: QuoteCandidate): void => {
-    if (!locateMessage(candidate.key)) {
-      setFailure('locate')
-      setStatus(null)
-      return
-    }
-    setFailure(null)
   }
 
   const send = async (): Promise<void> => {
@@ -146,32 +136,24 @@ export function QuoteDrawer({
     }
   }
 
+  if (!picker.open) return null
+
   const failureText = failure === null
     ? null
-    : t(failure === 'insert'
-      ? 'drawer.insertFailed'
-      : failure === 'forward' ? 'drawer.forwardFailed' : 'drawer.locateFailed')
+    : t(failure === 'insert' ? 'drawer.insertFailed' : 'drawer.forwardFailed')
 
   return (
-    <div className="bq-drawer">
-      <header className="bq-drawer-header">
-        <h2 className="bq-drawer-title">{t('tab.title')}</h2>
-        <SegmentedControl
-          id={modeId}
-          value={mode}
-          options={[
-            { value: 'quote', label: t('drawer.mode.quote') },
-            { value: 'forward', label: t('drawer.mode.forward') },
-          ]}
-          onChange={changeMode}
-          label={t('drawer.mode.label')}
-          disabled={sending}
-        />
+    <section className="bq-dock" data-quote-picker="">
+      <header className="bq-dock-header">
+        <h2 className="bq-dock-title">{t('tab.title')}</h2>
+        <Button variant="ghost" size="sm" className="bq-dock-close" aria-label={t('drawer.close')} onClick={close}>
+          <IconCloseOutlineRegular size={14} />
+        </Button>
       </header>
 
-      {step === 'target' && mode === 'forward'
+      {step === 'target'
         ? (
-          <div className="bq-drawer-section">
+          <div className="bq-dock-section">
             <div className="bq-target-head">
               <Button variant="ghost" size="sm" onClick={() => { setStep('select'); setFailure(null) }} disabled={sending}>
                 {t('drawer.back')}
@@ -184,7 +166,6 @@ export function QuoteDrawer({
               placeholder={t('drawer.searchSessions')}
               aria-label={t('drawer.searchSessions')}
               icon={<IconSearchOutlineRegular size={14} />}
-              data-modal-autofocus=""
             />
             {failureText !== null && <p className="bq-failure" role="alert">{failureText}</p>}
             <ul className="bq-target-list">
@@ -205,7 +186,7 @@ export function QuoteDrawer({
               ))}
             </ul>
             {targets.length === 0 && <p className="bq-empty">{t('drawer.noSessions')}</p>}
-            <footer className="bq-drawer-footer">
+            <footer className="bq-dock-footer">
               <span className="bq-count">{t('drawer.selected', { count: selected.size })}</span>
               <Button
                 variant="primary"
@@ -222,17 +203,12 @@ export function QuoteDrawer({
           </div>
         )
         : (
-          <div className="bq-drawer-section">
-            <div className="bq-drawer-tools">
+          <div className="bq-dock-section">
+            <div className="bq-dock-tools">
               <span className="bq-count">{t('drawer.selected', { count: selected.size })}</span>
-              <span className="bq-toolbar-actions">
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedKeys(new Set(filtered.map(candidate => candidate.key))) }}>
-                  {t('drawer.selectAll')}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => { setSelectedKeys(new Set()) }}>
-                  {t('drawer.clear')}
-                </Button>
-              </span>
+              <Button variant="ghost" size="sm" onClick={toggleAll} disabled={filtered.length === 0}>
+                {allShown ? t('drawer.clear') : t('drawer.selectAll')}
+              </Button>
             </div>
             <Input
               value={query}
@@ -240,7 +216,6 @@ export function QuoteDrawer({
               placeholder={t('drawer.searchMessages')}
               aria-label={t('drawer.searchMessages')}
               icon={<IconSearchOutlineRegular size={14} />}
-              data-modal-autofocus=""
             />
             {failureText !== null && <p className="bq-failure" role="alert">{failureText}</p>}
             {status !== null && (
@@ -269,33 +244,30 @@ export function QuoteDrawer({
                             return updated
                           })
                         }}
-                        onLocate={() => { locate(candidate) }}
                         t={t}
                       />
                     ))}
                   </ul>
                 )}
-            <footer className="bq-drawer-footer">
+            <footer className="bq-dock-footer">
               <Button
-                variant="primary"
+                variant="ghost"
                 disabled={selected.size === 0 || sending}
                 onClick={() => {
-                  if (mode === 'quote') insert()
-                  else {
-                    setStep('target')
-                    setFailure(null)
-                    setStatus(null)
-                  }
+                  setStep('target')
+                  setFailure(null)
+                  setStatus(null)
                 }}
               >
-                {mode === 'quote'
-                  ? t('drawer.insert', { count: selected.size })
-                  : t('drawer.chooseTarget')}
+                {t('drawer.forward')}
+              </Button>
+              <Button variant="primary" disabled={selected.size === 0 || sending} onClick={insert}>
+                {t('drawer.insert', { count: selected.size })}
               </Button>
             </footer>
           </div>
         )}
-    </div>
+    </section>
   )
 }
 

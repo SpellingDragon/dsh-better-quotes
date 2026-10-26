@@ -1,8 +1,6 @@
-/** Sent-message card for a quoted bundle, with per-item source navigation. */
+/** Sent-message card for a quoted bundle; expanding it reveals clickable source items. */
 import { useState, type ReactNode } from 'react'
-import {
-  Button, IconContextInjectionOutlineRegular, Tag,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconContextInjectionOutlineRegular, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatConversationViewNode, ChatNode, ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { UserTextNodeProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
@@ -17,19 +15,18 @@ export type BundleQuoteProps =
   & PropsLocale<typeof NS>
 
 /**
- * Render a compact, expandable quoted-message card in the transcript.
+ * Render a compact, collapsed-by-default quoted-message card in the transcript.
  * @param props - parsed bundle, Conversation lookup, Session identity, and copy.
- * @returns the inline card and its per-message locate controls.
+ * @returns the card; same-Session items locate their source when clicked.
  */
 export function BundleQuote({ node, useConversation, sessionId, t }: BundleQuoteProps): ReactNode {
   const chat = useConversation(snapshot => snapshot.views.get('chat'))
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [failure, setFailure] = useState(false)
   const bundle = node.data
   const sameSession = bundle.sourceSession === String(sessionId)
 
   const locate = (item: BundleItem): void => {
-    if (!sameSession) return
     const target = findSourceNode(chat, item)
     if (target === undefined || !locateMessage(target.key)) {
       setFailure(true)
@@ -48,38 +45,45 @@ export function BundleQuote({ node, useConversation, sessionId, t }: BundleQuote
       >
         <IconContextInjectionOutlineRegular size={14} />
         <span className="bq-bundle-title">{t('bundle.title', { count: bundle.count })}</span>
-        {!sameSession && <Tag tone="warning">{t('bundle.otherSession')}</Tag>}
+        {!sameSession && (
+          <span title={bundle.sourceSession}>
+            <Tag tone="warning">{t('bundle.otherSession')}</Tag>
+          </span>
+        )}
         <span className="bq-bundle-chevron" aria-hidden>{expanded ? '▾' : '▸'}</span>
       </button>
       {expanded && (
         <span className="bq-bundle-body">
-          <span className="bq-bundle-source" title={bundle.sourceSession}>
-            {t('bundle.source', { session: shortSession(bundle.sourceSession) })}
-          </span>
-          {bundle.items.map((item, index) => (
-            <span className="bq-bundle-item" key={`${item.sessionId}:${String(item.seq)}:${String(index)}`}>
-              <span className="bq-bundle-item-head">
-                <Tag tone={item.role === 'assistant' ? 'info' : 'neutral'}>{roleLabel(item, t)}</Tag>
-                <span className="bq-bundle-time">{formatTime(item.time)}</span>
-                {item.attachments.length > 0 && (
-                  <span className="bq-bundle-attachments">
-                    {t('bundle.attachments', { count: item.attachments.length })}
-                  </span>
-                )}
-                {sameSession && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="bq-bundle-locate"
-                    onClick={() => { locate(item) }}
-                  >
-                    {t('bundle.locate')}
-                  </Button>
-                )}
-              </span>
-              <span className="bq-bundle-text">{item.text === '' ? t('row.noText') : item.text}</span>
-            </span>
-          ))}
+          {bundle.items.map((item, index) => {
+            const body = (
+              <>
+                <span className="bq-bundle-item-head">
+                  <Tag tone={item.role === 'assistant' ? 'info' : 'neutral'}>{roleLabel(item, t)}</Tag>
+                  <span className="bq-bundle-time">{formatTime(item.time)}</span>
+                  {item.attachments.length > 0 && (
+                    <span className="bq-bundle-attachments">
+                      {t('bundle.attachments', { count: item.attachments.length })}
+                    </span>
+                  )}
+                </span>
+                <span className="bq-bundle-text">{item.text === '' ? t('row.noText') : item.text}</span>
+              </>
+            )
+            const key = `${item.sessionId}:${String(item.seq)}:${String(index)}`
+            return sameSession
+              ? (
+                <button
+                  type="button"
+                  className="bq-bundle-item"
+                  key={key}
+                  title={t('bundle.locate')}
+                  onClick={() => { locate(item) }}
+                >
+                  {body}
+                </button>
+              )
+              : <span className="bq-bundle-item" key={key}>{body}</span>
+          })}
           {failure && <span className="bq-bundle-failure" role="alert">{t('bundle.locateFailed')}</span>}
         </span>
       )}
@@ -118,8 +122,4 @@ function formatTime(time: string): string {
   const date = new Date(time)
   if (Number.isNaN(date.getTime())) return time
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(date)
-}
-
-function shortSession(sessionId: string): string {
-  return sessionId.length <= 10 ? sessionId : `${sessionId.slice(0, 8)}…`
 }

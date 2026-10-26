@@ -49,6 +49,22 @@ export function collectCandidates(chat: ChatSnapshot | undefined): readonly Quot
   return candidates.sort((left, right) => left.seq - right.seq || left.key.localeCompare(right.key))
 }
 
+/**
+ * Find one finalized assistant candidate by durable message identity, regardless of row visibility.
+ * @param chat - current Chat snapshot.
+ * @param messageId - assistant message identity from the action row.
+ * @returns the candidate, or undefined when no finalized assistant message matches.
+ */
+export function assistantCandidateByMessage(chat: ChatSnapshot | undefined, messageId: string): QuoteCandidate | undefined {
+  if (chat === undefined) return undefined
+  for (const node of chat.nodes.values()) {
+    if (node.kind !== 'assistant-step') continue
+    const candidate = assistantCandidate(node as ChatNode<'assistant-step'>)
+    if (candidate?.messageId === messageId) return candidate
+  }
+  return undefined
+}
+
 function userCandidate(node: ChatNode<'user' | 'steering'>): QuoteCandidate | undefined {
   const data = node.data as typeof node.data & { readonly messageId?: unknown }
   const text = textOf(data.content)
