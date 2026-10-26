@@ -3,9 +3,9 @@
 [![CI](https://github.com/SpellingDragon/dsh-better-quotes/actions/workflows/ci.yml/badge.svg)](https://github.com/SpellingDragon/dsh-better-quotes/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Quote or forward whole messages in DeepSeek Harness Web — one action next to Fork, an inline picker above the composer, and a collapsed bundle card the model can read and look up.
+Quote or forward whole messages in DeepSeek Harness Web — one action next to Fork, a right-Sidebar selector, and a collapsed bundle card the model can read and look up.
 
-Click the quote icon between Copy and Fork to insert that message immediately. Hold the same icon to select more user and assistant messages in the conversation, then quote them once or forward the same bundle to another local Session.
+Click the quote icon between Copy and Fork to insert that message immediately. Hold the same icon to select more user and assistant messages in the right-Sidebar Quotes tab, then quote them once or forward the same bundle to another local Session.
 
 ## Quick start
 
@@ -13,7 +13,7 @@ Click the quote icon between Copy and Fork to insert that message immediately. H
 npm ci
 npm run build
 npm pack
-dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.3.0.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.4.0.tgz
 ```
 
 From a DSH source checkout, use `pnpm dsh plugin` instead of `dsh plugin`. Restart `dsh web` or refresh the browser. The package targets DSH `>=0.2.1-rc.3 <0.3.0-0`.
@@ -33,7 +33,7 @@ Click the icon between Copy and Fork. The message enters the composer immediatel
 ### Quote or forward several
 
 1. Hold the same icon for half a second, or press `Shift+Enter`.
-2. The picker opens above the composer with that message selected. Click rows to toggle selection, search to narrow the list, and use the single all/none control for what is shown.
+2. The Quotes tab opens in the right Sidebar with that message selected. Click rows to toggle selection, search to narrow the list, and use the single all/none control for what is shown.
 3. Choose **Insert quote (N)** to place one bundle in the composer, or **Forward** to pick another local Session and send the same bundle.
 4. The target excludes the current Session and subagent Sessions.
 
@@ -80,7 +80,7 @@ The bundle remains readable without it, but cannot be queried by identity.
 ## Compatibility and privacy
 
 - `insertQuote` is used when the host exposes it; older hosts fall back to `insertText` at the caret.
-- The picker reads the Chat snapshot through standard Session props; it does not scrape the DOM.
+- The selector reads the Chat snapshot through standard Session props; it does not scrape the DOM.
 - Forwarding stays inside the local DSH process and only targets Sessions the client lists.
 - No external HTTP requests, analytics, or remote services.
 - All text is React-rendered; stylesheet classes are prefixed `bq-`.
@@ -91,7 +91,7 @@ Public READMEs as of **2026-10-26**.
 
 | Plugin | Selection entry | Quote shape | Cross-Session forwarding | Durable identity |
 |---|---|---|---|---|
-| **dsh-better-quotes** | One action: click quotes, hold multi-selects inline | One bounded `<quoted_messages>` bundle | Yes, same picker | `session_id`, `seq`, `message_id`, time, route, skills, references |
+| **dsh-better-quotes** | One action: click quotes, hold multi-selects in the right Sidebar | One bounded `<quoted_messages>` bundle | Yes, same tab | `session_id`, `seq`, `message_id`, time, route, skills, references |
 | [dsh-message-forward](https://github.com/Domaki-co/dsh-message-forward) | Long-press multi-select; forward dialog | Forwarding context | Yes | Source session and speaker |
 | [dsh-quote-followup](https://github.com/tr1v3r/dsh-quote-followup) | Selection toolbar; text | Quote chips | No | Text selection |
 | [dsh-select-quote](https://github.com/latte03/dsh-select-quote) | Selection toolbar; text | Stacked cards | No | Text selection |
@@ -101,7 +101,7 @@ Public READMEs as of **2026-10-26**.
 ## Design
 
 - One control carries two outcomes: click quotes immediately; hold opens multi-select.
-- The picker is a `conversation.input.dock` entry, so it appears where the next message will be sent.
+- Multi-select is a `sidebar.right.pane.tab` body, so the transcript stays put while selecting.
 - One bundle replaces N disconnected quotes and carries source, count, order, and per-message boundaries.
 - Bundle cards start folded; clicking an item is the locate affordance.
 - Locate unfolds a folded process group and drives the real vertical scrollport.
@@ -110,7 +110,7 @@ Public READMEs as of **2026-10-26**.
 flowchart LR
   A[Click] --> B[formatBundle]
   B --> C[insertQuote / insertText]
-  A2[Hold] --> D[Inline picker]
+  A2[Hold] --> D[Quotes tab]
   D --> E[select messages]
   E -->|Insert| C
   E -->|Forward| F[choose target Session]
@@ -123,7 +123,7 @@ flowchart LR
 
 ## Limitations and roadmap
 
-- The picker is an inline panel, not per-row checkboxes in the transcript.
+- Multi-select lives in the right Sidebar, not as per-row checkboxes in the transcript.
 - Locate only works inside the source Session.
 - Attachments are referenced, not re-attached; thumbnails and re-attachment remain future work.
 - Only the loaded, visible Chat window is listed.
@@ -140,7 +140,7 @@ npm pack
 ```
 
 - `QuoteAction.tsx` — click quote / hold multi-select.
-- `QuoteDock.tsx` and `QuoteRow.tsx` — inline picker and message rows.
+- `QuoteDrawer.tsx` and `QuoteRow.tsx` — right-Sidebar selector and message rows.
 - `bundle.ts`, `quote-rule.ts`, `BundleQuote.tsx` — bundle format, parsing, and card.
 - `locate.ts` — unfold and source locate.
 - `tests/` — 36 focused tests.

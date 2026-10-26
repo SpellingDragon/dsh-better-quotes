@@ -29,17 +29,17 @@ const chat: ChatSnapshot = snapshotOf([
 
 function mount() {
   const insertQuote = vi.fn((_text: string) => true)
-  const openPicker = vi.fn()
+  const openQuotes = vi.fn()
   const props = {
     messageId,
     sessionId: SessionId('session-1'),
     useConversation: (<T,>(select: (snapshot: { views: { get: () => ChatSnapshot } }) => T): T =>
       select({ views: { get: () => chat } })) as never,
     inputActions: { insertQuote } as never,
-    openPicker,
+    openQuotes,
     t: ((key: string) => (zh as Readonly<Record<string, string>>)[key] ?? key) as QuoteActionProps['t'],
   } as QuoteActionProps
-  return { ...render(<QuoteAction {...props} />), insertQuote, openPicker }
+  return { ...render(<QuoteAction {...props} />), insertQuote, openQuotes }
 }
 
 describe('QuoteAction', () => {
@@ -51,7 +51,7 @@ describe('QuoteAction', () => {
     expect(ui.insertQuote).toHaveBeenCalledOnce()
     expect(ui.insertQuote.mock.calls[0]![0]).toContain('<quoted_messages')
     expect(ui.insertQuote.mock.calls[0]![0]).toContain('second')
-    expect(ui.openPicker).not.toHaveBeenCalled()
+    expect(ui.openQuotes).not.toHaveBeenCalled()
   })
 
   it('opens multi-select on press-and-hold and suppresses the trailing click', () => {
@@ -64,7 +64,7 @@ describe('QuoteAction', () => {
     fireEvent.pointerUp(button)
     fireEvent.click(button)
 
-    expect(ui.openPicker).toHaveBeenCalledWith('message-2')
+    expect(ui.openQuotes).toHaveBeenCalledWith(messageId)
     expect(ui.insertQuote).not.toHaveBeenCalled()
   })
 
@@ -73,7 +73,7 @@ describe('QuoteAction', () => {
 
     fireEvent.keyDown(ui.getByRole('button', { name: zh['action.quote'] }), { key: 'Enter', shiftKey: true })
 
-    expect(ui.openPicker).toHaveBeenCalledWith('message-2')
+    expect(ui.openQuotes).toHaveBeenCalledWith(messageId)
     expect(ui.insertQuote).not.toHaveBeenCalled()
   })
 })

@@ -1,15 +1,17 @@
-/** Browser plugin: inline picker dock, assistant actions, bundle card, and cross-Session forwarding. */
+/** Browser plugin: quotes tab, assistant actions, bundle card, and cross-Session forwarding. */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import type { MessageId } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import { IconContextInjectionOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { BundleQuote } from './BundleQuote.tsx'
 import { QuoteAction, type QuoteActionInjected } from './QuoteAction.tsx'
-import { QuoteDock, type QuoteDockInjected } from './QuoteDock.tsx'
+import { QuoteDrawer, type QuoteDrawerInjected } from './QuoteDrawer.tsx'
 import { en, NS, zh, type BetterQuotesKey } from './locales.ts'
-import { createPickerStore } from './picker.ts'
 import { BUNDLE_RULE_ID, bundleQuoteRule } from './quote-rule.ts'
 import { installStyles } from './styles.ts'
 
@@ -18,8 +20,15 @@ export type {} from './candidates.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
-    /** Copy owned by the inline picker, bundle card, and assistant actions. */
+    /** Copy owned by the quotes tab, bundle card, and assistant actions. */
     betterQuotes: BetterQuotesKey
+  }
+}
+
+declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
+  interface SidebarRightTabParamsMap {
+    /** Durable message identity the opener asked the quotes tab to preselect. */
+    'better-quotes': { readonly select?: string }
   }
 }
 
@@ -32,18 +41,34 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
 /** Browser plugin name. */
 export const name = 'dsh-better-quotes'
 
-/** Services required by the picker, bundle card, actions, and forwarding verb. */
-export const inject = ['slots', 'locale', 'uiConversation', 'sessions']
+/** Tab-type identity and the kind opened through `ctx.sidebarRight`. */
+export const TAB_ID = 'dsh-better-quotes'
+export const TAB_KIND = 'better-quotes'
+
+/** Services required by the quotes tab, bundle card, actions, and forwarding verb. */
+export const inject = ['slots', 'locale', 'uiConversation', 'sessions', 'sidebarRight', 'sidebarRightTabs']
 
 /**
- * Register the inline picker, assistant actions, bundle renderer, and forwarding verb.
+ * Register the quotes tab, assistant actions, bundle renderer, and forwarding verb.
  * @param ctx - browser root context owning every contribution.
  */
 export function apply(ctx: Context): void {
-  const picker = createPickerStore()
+  const t = ctx.locale.bind(NS)
   ctx.effect(() => installStyles(), 'dsh-better-quotes: styles')
   ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'dsh-better-quotes: dictionaries')
   ctx.effect(() => ctx.uiConversation.userText.register(bundleQuoteRule), 'dsh-better-quotes: UserText rule')
+  ctx.effect(() => ctx.sidebarRightTabs.register({
+    id: TAB_ID,
+    kind: TAB_KIND,
+    title: () => t('tab.title'),
+    guide: [{
+      id: 'quotes',
+      order: 10,
+      title: () => t('tab.title'),
+      description: () => t('tab.description'),
+      icon: IconContextInjectionOutlineRegular,
+    }],
+  }), 'dsh-better-quotes: tab type')
 
   const forward = async (targetId: SessionId, text: string): Promise<void> => {
     await ctx.sessions.using(targetId, { source: 'betterQuotes' }, async (reference) => {
@@ -52,16 +77,12 @@ export function apply(ctx: Context): void {
     })
   }
 
-  ctx.effect(() => ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
-    name: 'conversation.input.dock',
-    id: 'better-quotes',
+  ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
+    name: 'sidebar.right.pane.tab',
+    key: TAB_ID,
     locale: NS,
-    inject: (): QuoteDockInjected => ({
-      hooks: { picker: picker.source },
-      close: () => { picker.close() },
-      forward,
-    }),
-  }, QuoteDock)), 'dsh-better-quotes: inline picker')
+    inject: (): QuoteDrawerInjected => ({ forward }),
+  }, QuoteDrawer)), 'dsh-better-quotes: quotes tab')
 
   ctx.effect(() => ctx.slots.inject('conversation.user.text.node', () => ctx.slots.register({
     name: 'conversation.user.text.node',
@@ -74,7 +95,9 @@ export function apply(ctx: Context): void {
     id: 'better-quotes',
     locale: NS,
     inject: (): QuoteActionInjected => ({
-      openPicker: (focus?: string) => { picker.open(focus) },
+      openQuotes: (messageId: MessageId) => {
+        ctx.sidebarRight.openTab(TAB_KIND, { params: { select: String(messageId) } })
+      },
     }),
-  }, QuoteAction)), 'dsh-better-quotes: assistant actions')
+  }, QuoteAction)), 'dsh-better-quotes: assistant action')
 }

@@ -29,50 +29,29 @@ const CSS = `
   outline-offset: 2px;
 }
 
-.bq-dock {
+.bq-drawer {
   display: flex;
   flex-direction: column;
-  max-height: min(520px, 60vh);
-  margin-bottom: 8px;
-  padding: 12px;
-  border: 0.5px solid var(--dsw-alias-border-l4);
-  border-radius: var(--dsw-radius-panel);
-  background: var(--dsw-alias-bg-base);
+  height: 100%;
+  min-height: 0;
+  padding: 12px 12px 0;
   font-size: 13px;
 }
 
-.bq-dock-header {
+.bq-drawer-section {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 10px;
-}
-
-.bq-dock-title {
-  margin: 0;
-  color: var(--dsw-alias-label-primary);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.bq-dock-close {
-  margin-left: auto;
-}
-
-.bq-dock-section {
-  display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
 }
 
-.bq-dock input {
+.bq-drawer input {
   width: 100%;
   box-sizing: border-box;
 }
 
-.bq-dock-tools,
+.bq-drawer-tools,
 .bq-target-head {
   display: flex;
   align-items: center;
@@ -86,18 +65,13 @@ const CSS = `
   font-weight: 500;
 }
 
-.bq-dock-footer {
+.bq-drawer-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding-top: 10px;
+  padding: 10px 0 12px;
   border-top: 0.5px solid var(--dsw-alias-border-l4);
-}
-
-.bq-toolbar-actions {
-  display: flex;
-  gap: 4px;
 }
 
 .bq-count {
@@ -129,9 +103,10 @@ const CSS = `
 
 .bq-list {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
-  max-height: 36vh;
+  min-height: 0;
   margin: 0;
   padding: 0 0 4px;
   overflow-y: auto;
@@ -140,9 +115,10 @@ const CSS = `
 
 .bq-target-list {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 6px;
-  max-height: 36vh;
+  min-height: 0;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -254,10 +230,6 @@ const CSS = `
   color: var(--dsw-alias-label-tertiary);
   font-size: 11px;
   white-space: nowrap;
-}
-
-.bq-locate {
-  flex: none;
 }
 
 .bq-preview {

@@ -1,4 +1,4 @@
-/** Locale-owned copy for the quotes drawer, bundle card, and assistant action. */
+/** Locale-owned copy for the quotes tab, bundle card, and assistant action. */
 
 /** Locale namespace registered by the browser plugin. */
 export const NS = 'betterQuotes'
@@ -8,7 +8,6 @@ export const zh = {
   'tab.title': '引用',
   'tab.description': '多选消息，插入引用或转发到另一个会话',
   'action.quote': '引用这条消息（长按多选）',
-  'drawer.close': '关闭',
   'drawer.forward': '转发',
   'drawer.searchMessages': '搜索消息、附件、Skill 或引用',
   'drawer.searchSessions': '搜索目标会话',
@@ -18,7 +17,6 @@ export const zh = {
   'drawer.insert': '插入引用（{count}）',
   'drawer.inserted': '已插入引用。',
   'drawer.insertFailed': '引用插入失败，请确认输入框可编辑后重试。',
-  'drawer.chooseTarget': '选择目标会话',
   'drawer.target.title': '选择目标会话',
   'drawer.back': '返回',
   'drawer.send': '发送',
@@ -30,7 +28,6 @@ export const zh = {
   'drawer.empty': '当前对话视图没有可引用的消息。',
   'drawer.noResults': '没有匹配的消息。',
   'drawer.noSessions': '没有匹配的目标会话。',
-  'drawer.locateFailed': '原消息当前不可见，可能已被折叠或不在已加载范围内。',
   'bundle.title': '引用 {count} 条消息',
   'bundle.otherSession': '来自其他会话',
   'bundle.attachments': '{count} 个附件',
@@ -54,7 +51,6 @@ export const en: Record<keyof typeof zh, string> = {
   'tab.title': 'Quotes',
   'tab.description': 'Select messages to quote or forward to another session',
   'action.quote': 'Quote this message (hold for multi-select)',
-  'drawer.close': 'Close',
   'drawer.forward': 'Forward',
   'drawer.searchMessages': 'Search messages, attachments, skills, or references',
   'drawer.searchSessions': 'Search target sessions',
@@ -64,7 +60,6 @@ export const en: Record<keyof typeof zh, string> = {
   'drawer.insert': 'Insert quote ({count})',
   'drawer.inserted': 'Quote inserted.',
   'drawer.insertFailed': 'Could not insert the quote. Check that the composer is editable and try again.',
-  'drawer.chooseTarget': 'Choose target',
   'drawer.target.title': 'Choose a target session',
   'drawer.back': 'Back',
   'drawer.send': 'Send',
@@ -76,7 +71,6 @@ export const en: Record<keyof typeof zh, string> = {
   'drawer.empty': 'No quotable messages are visible in the current chat view.',
   'drawer.noResults': 'No messages match this search.',
   'drawer.noSessions': 'No target sessions match this search.',
-  'drawer.locateFailed': 'The original message is not visible; it may be collapsed or outside the loaded range.',
   'bundle.title': 'Quoted {count} messages',
   'bundle.otherSession': 'From another session',
   'bundle.attachments': '{count} attachments',

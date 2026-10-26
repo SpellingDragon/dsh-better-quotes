@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 - 2026-10-26
+
+### Changed
+
+- Multi-select moved from the composer dock into a right-Sidebar Quotes tab, so selecting never scrolls or covers the transcript.
+- Press-and-hold (or `Shift+Enter`) on the Fork-side action now opens the Quotes tab with that message preselected; navigating again replaces the selection.
+- The selector reads its preselect from the tab's navigation params (`useTabInfo`), and the plugin dropped its picker store and `@deepseek-ai/dsh-client-store` runtime dependency.
+
 ## 0.3.0 - 2026-10-26
 
 ### Changed

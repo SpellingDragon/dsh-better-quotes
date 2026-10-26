@@ -1,22 +1,18 @@
-/** Conversation-inline picker above the composer: select messages, quote them, or forward them. */
+/** Right-Sidebar tab body: select messages, quote them into the composer, or forward them. */
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  Button, IconCloseOutlineRegular, IconSearchOutlineRegular, Input,
+  Button, IconSearchOutlineRegular, Input,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { formatBundle, formatForwardPrompt } from './bundle.ts'
 import { collectCandidates, type QuoteCandidate } from './candidates.ts'
 import { insertQuoteText } from './input.ts'
 import type { NS } from './locales.ts'
-import type { PickerState } from './picker.ts'
 import { QuoteRow } from './QuoteRow.tsx'
 
-/** Picker state, close verb, and cross-Session forwarding injected by the browser plugin. */
-export interface QuoteDockInjected {
-  hooks: { picker: { getSnapshot(): PickerState; subscribe(listener: () => void): () => void } }
-  readonly close: () => void
+/** Cross-Session forwarding injected by the browser plugin. */
+export interface QuoteDrawerInjected {
   /**
    * Send one forwarded bundle into a target Session.
    * @param targetId - target Session.
@@ -25,25 +21,25 @@ export interface QuoteDockInjected {
   readonly forward: (targetId: SessionId, text: string) => Promise<void>
 }
 
-/** Composed props for the inline picker dock. */
-export type QuoteDockProps =
-  PropsRuntime<'conversation.input.dock'>
+/** Composed props for the quotes tab body. */
+export type QuoteDrawerProps =
+  PropsRuntime<'sidebar.right.pane.tab'>
   & PropsLocale<typeof NS>
-  & InjectFace<QuoteDockInjected>
+  & InjectFace<QuoteDrawerInjected>
 
 type Step = 'select' | 'target'
 type Failure = 'insert' | 'forward'
 type Status = 'inserted' | 'forwarded'
 
 /**
- * Render the inline picker above the composer while it is open.
- * @param props - Chat/Session seats, input actions, picker state, forwarding verb, and copy.
- * @returns the picker panel, or null while closed.
+ * Render the quotes tab: select messages, then insert one quote bundle or forward it.
+ * @param props - tab navigation, Chat/Session seats, input actions, forwarding verb, and copy.
+ * @returns the tab body.
  */
-export function QuoteDock({
-  sessionId, useConversation, useSessions, inputActions, usePicker, close, forward, t,
-}: QuoteDockProps): ReactNode {
-  const picker = usePicker(state => state)
+export function QuoteDrawer({
+  sessionId, useConversation, useSessions, inputActions, useTabInfo, forward, t,
+}: QuoteDrawerProps): ReactNode {
+  const tabInfo = useTabInfo()
   const chat = useConversation(snapshot => snapshot.views.get('chat'))
   const sessions = useSessions(state => state)
   const [step, setStep] = useState<Step>('select')
@@ -55,6 +51,7 @@ export function QuoteDock({
   const [status, setStatus] = useState<Status | null>(null)
   const [forwardedTo, setForwardedTo] = useState('')
   const [sending, setSending] = useState(false)
+  const [pendingSelect, setPendingSelect] = useState<string | undefined>()
 
   const candidates = useMemo(() => collectCandidates(chat), [chat])
   const filtered = useMemo(() => {
@@ -81,24 +78,17 @@ export function QuoteDock({
   }, [sessionId, sessions, targetQuery])
   const selectedTarget = targetId === undefined ? undefined : sessions.byId[targetId]
 
+  const selectionParam = (tabInfo.tab.navigation.params as { select?: string } | undefined)?.select
   useEffect(() => {
-    if (picker.open) return
-    setStep('select')
-    setQuery('')
-    setTargetQuery('')
-    setSelectedKeys(new Set())
-    setTargetId(undefined)
-    setFailure(null)
-    setStatus(null)
-    setForwardedTo('')
-  }, [picker.open])
-
+    setPendingSelect(selectionParam)
+  }, [selectionParam, tabInfo.tab.navigation.revision])
   useEffect(() => {
-    if (!picker.open || picker.focus === null) return
-    const candidate = candidates.find(item => item.messageId === picker.focus)
-    if (candidate === undefined || selected.has(candidate.key)) return
+    if (pendingSelect === undefined) return
+    const candidate = candidates.find(item => item.messageId === pendingSelect)
+    if (candidate === undefined) return
     setSelectedKeys(new Set([candidate.key]))
-  }, [candidates, picker.focus, picker.open, selected])
+    setPendingSelect(undefined)
+  }, [candidates, pendingSelect])
 
   const toggleAll = (): void => {
     setSelectedKeys(allShown ? new Set() : new Set(filtered.map(candidate => candidate.key)))
@@ -136,24 +126,15 @@ export function QuoteDock({
     }
   }
 
-  if (!picker.open) return null
-
   const failureText = failure === null
     ? null
     : t(failure === 'insert' ? 'drawer.insertFailed' : 'drawer.forwardFailed')
 
   return (
-    <section className="bq-dock" data-quote-picker="">
-      <header className="bq-dock-header">
-        <h2 className="bq-dock-title">{t('tab.title')}</h2>
-        <Button variant="ghost" size="sm" className="bq-dock-close" aria-label={t('drawer.close')} onClick={close}>
-          <IconCloseOutlineRegular size={14} />
-        </Button>
-      </header>
-
+    <section className="bq-drawer" data-quote-picker="">
       {step === 'target'
         ? (
-          <div className="bq-dock-section">
+          <div className="bq-drawer-section">
             <div className="bq-target-head">
               <Button variant="ghost" size="sm" onClick={() => { setStep('select'); setFailure(null) }} disabled={sending}>
                 {t('drawer.back')}
@@ -186,7 +167,7 @@ export function QuoteDock({
               ))}
             </ul>
             {targets.length === 0 && <p className="bq-empty">{t('drawer.noSessions')}</p>}
-            <footer className="bq-dock-footer">
+            <footer className="bq-drawer-footer">
               <span className="bq-count">{t('drawer.selected', { count: selected.size })}</span>
               <Button
                 variant="primary"
@@ -203,8 +184,8 @@ export function QuoteDock({
           </div>
         )
         : (
-          <div className="bq-dock-section">
-            <div className="bq-dock-tools">
+          <div className="bq-drawer-section">
+            <div className="bq-drawer-tools">
               <span className="bq-count">{t('drawer.selected', { count: selected.size })}</span>
               <Button variant="ghost" size="sm" onClick={toggleAll} disabled={filtered.length === 0}>
                 {allShown ? t('drawer.clear') : t('drawer.selectAll')}
@@ -249,7 +230,7 @@ export function QuoteDock({
                     ))}
                   </ul>
                 )}
-            <footer className="bq-dock-footer">
+            <footer className="bq-drawer-footer">
               <Button
                 variant="ghost"
                 disabled={selected.size === 0 || sending}

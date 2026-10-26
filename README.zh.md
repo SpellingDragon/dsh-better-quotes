@@ -3,9 +3,9 @@
 [![CI](https://github.com/SpellingDragon/dsh-better-quotes/actions/workflows/ci.yml/badge.svg)](https://github.com/SpellingDragon/dsh-better-quotes/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-在 DeepSeek Harness Web 中引用或转发整条消息：Fork 旁一个动作，输入框上方内联选择器，发送后得到一个默认折叠、模型可读可回查的 bundle 卡。
+在 DeepSeek Harness Web 中引用或转发整条消息：Fork 旁一个动作，右侧边栏选择器，发送后得到一个默认折叠、模型可读可回查的 bundle 卡。
 
-点击 Copy 与 Fork 之间的引用图标，该消息立即进入输入框；长按同一个图标即可在当前会话中多选用户和助手消息，一次性引用，或把同一个 bundle 转发给另一个本地 Session。
+点击 Copy 与 Fork 之间的引用图标，该消息立即进入输入框；长按同一个图标即可在右侧边栏「引用」标签页中多选用户和助手消息，一次性引用，或把同一个 bundle 转发给另一个本地 Session。
 
 ## 快速开始
 
@@ -13,7 +13,7 @@
 npm ci
 npm run build
 npm pack
-dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.3.0.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.4.0.tgz
 ```
 
 从 DSH 源码仓库运行时把 `dsh plugin` 换成 `pnpm dsh plugin`。重启 `dsh web` 或刷新浏览器。支持 DSH `>=0.2.1-rc.3 <0.3.0-0`。
@@ -33,7 +33,7 @@ dsh plugin --profile web add dsh-better-quotes
 ### 多条引用或转发
 
 1. 长按同一个图标约半秒，或按 `Shift+Enter`。
-2. 选择器出现在输入框上方，并已预选该消息。点击行切换选择，搜索缩小列表，单个全选/清空控件操作当前可见结果。
+2. 右侧边栏打开「引用」标签页，并已预选该消息。点击行切换选择，搜索缩小列表，单个全选/清空控件操作当前可见结果。
 3. 点击 **插入引用（N）** 得到一个 bundle，或点击 **转发** 选择另一个本地 Session 并发送同一个 bundle。
 4. 目标列表不包含当前 Session 和 subagent Session。
 
@@ -91,7 +91,7 @@ It fails because the migration dropped the index.
 
 | 插件 | 选择入口 | 引用形态 | 跨会话转发 | 持久身份 |
 |---|---|---|---|---|
-| **dsh-better-quotes** | 一个动作：点击引用，长按内联多选 | 单个 `<quoted_messages>` bundle | 是，同一选择器 | `session_id`、`seq`、`message_id`、时间、路由、Skill、引用 |
+| **dsh-better-quotes** | 一个动作：点击引用，长按右侧边栏多选 | 单个 `<quoted_messages>` bundle | 是，同一标签页 | `session_id`、`seq`、`message_id`、时间、路由、Skill、引用 |
 | [dsh-message-forward](https://github.com/Domaki-co/dsh-message-forward) | 长按多选；转发弹窗 | 转发上下文 | 是 | 来源会话与说话者 |
 | [dsh-quote-followup](https://github.com/tr1v3r/dsh-quote-followup) | 划词工具条；文本 | 引用 chip | 否 | 文本选择 |
 | [dsh-select-quote](https://github.com/latte03/dsh-select-quote) | 划词工具条；文本 | 堆叠卡片 | 否 | 文本选择 |
@@ -101,7 +101,7 @@ It fails because the migration dropped the index.
 ## 设计
 
 - 一个控件承载两种结果：点击直接引用，长按进入多选。
-- 选择器是 `conversation.input.dock` 入口，出现在下一条消息发出的位置。
+- 多选是 `sidebar.right.pane.tab` 标签页正文，选择消息时对话区保持不动。
 - 一个 bundle 替代 N 个散 quote，带来源、数量、顺序和逐条边界。
 - 引用卡默认折叠，点击条目即定位。
 - 定位会先展开折叠的过程组，再驱动真实滚动容器。
@@ -110,7 +110,7 @@ It fails because the migration dropped the index.
 flowchart LR
   A[Click] --> B[formatBundle]
   B --> C[insertQuote / insertText]
-  A2[Hold] --> D[Inline picker]
+  A2[Hold] --> D[Quotes tab]
   D --> E[select messages]
   E -->|Insert| C
   E -->|Forward| F[choose target Session]
@@ -123,7 +123,7 @@ flowchart LR
 
 ## 限制与后续计划
 
-- 选择器是内联面板，不向每条消息行注入复选框。
+- 多选在右侧边栏，不向每条消息行注入复选框。
 - 定位只在来源 Session 内可用。
 - 附件只引用、不重新附加；缩略图和重新附加仍是后续工作。
 - 只列出当前已加载、可见的 Chat 窗口。
@@ -140,7 +140,7 @@ npm pack
 ```
 
 - `QuoteAction.tsx` — 单击引用 / 长按多选。
-- `QuoteDock.tsx`、`QuoteRow.tsx` — 内联选择器与消息行。
+- `QuoteDrawer.tsx`、`QuoteRow.tsx` — 右侧边栏选择器与消息行。
 - `bundle.ts`、`quote-rule.ts`、`BundleQuote.tsx` — bundle 格式、解析与引用卡。
 - `locate.ts` — 展开与来源定位。
 - `tests/` — 36 个聚焦测试。

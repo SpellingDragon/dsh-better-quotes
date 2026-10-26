@@ -25,19 +25,10 @@ const react = {
   Fragment: {},
 }
 const jsxRuntime = { jsx: () => null, jsxs: () => null, Fragment: {} }
-const clientStore = {
-  createSnapshotStore: (init) => ({
-    getSnapshot: () => init,
-    subscribe: () => () => undefined,
-    set: () => undefined,
-    update: () => undefined,
-  }),
-}
 const requireStub = (name) => {
   if (name === 'react') return react
   if (name === 'react/jsx-runtime') return jsxRuntime
   if (name === '@deepseek-ai/dsh-client-ui-primitives') return primitives
-  if (name === '@deepseek-ai/dsh-client-store') return clientStore
   throw new Error(`unexpected require: ${name}`)
 }
 
@@ -49,7 +40,7 @@ vm.runInThisContext(readFileSync(new URL('../lib/client.js', import.meta.url), '
 
 if (loaded === undefined) throw new Error('module loader did not run')
 if (typeof loaded.apply !== 'function') throw new Error('apply is missing')
-if (!Array.isArray(loaded.inject) || loaded.inject.join(',') !== 'slots,locale,uiConversation,sessions') {
+if (!Array.isArray(loaded.inject) || loaded.inject.join(',') !== 'slots,locale,uiConversation,sessions,sidebarRight,sidebarRightTabs') {
   throw new Error('inject is wrong')
 }
 console.log('bundle smoke ok:', Object.keys(loaded).join(','))

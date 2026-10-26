@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-/** The inline picker selects rows in place and carries quote or forward from two footer actions. */
+/** The right-Sidebar quotes tab selects rows in place and carries quote or forward from its footer. */
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
-import { QuoteDock, type QuoteDockProps } from '../src/client/QuoteDock.tsx'
+import { QuoteDrawer, type QuoteDrawerProps } from '../src/client/QuoteDrawer.tsx'
 import { zh } from '../src/client/locales.ts'
 import { assistantNode, snapshotOf, userNode } from './fixtures.client.ts'
 
@@ -38,8 +38,9 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
     Checkbox,
     Input,
     Tag,
-    IconCloseOutlineRegular: Icon,
+    IconPaperclipOutlineRegular: Icon,
     IconSearchOutlineRegular: Icon,
+    IconSkillOutlineRegular: Icon,
     fileSizeText: (bytes: number) => `${String(bytes)} B`,
   }
 })
@@ -54,7 +55,7 @@ const translate = ((key: string, params?: Readonly<Record<string, string | numbe
   let text = (zh as Readonly<Record<string, string>>)[key] ?? key
   for (const [name, value] of Object.entries(params ?? {})) text = text.replace(`{${name}}`, String(value))
   return text
-}) as QuoteDockProps['t']
+}) as QuoteDrawerProps['t']
 
 function chat(): ChatSnapshot {
   return snapshotOf([
@@ -89,46 +90,74 @@ function count(value: number): string {
   return zh['drawer.selected'].replace('{count}', String(value))
 }
 
-function mount(focus: string | null = null) {
-  const insertQuote = vi.fn((_text: string) => true)
+function insertName(value: number): string {
+  return zh['drawer.insert'].replace('{count}', String(value))
+}
+
+function mount(options: { select?: string; insertQuote?: (text: string) => boolean } = {}) {
+  const insertQuote = vi.fn(options.insertQuote ?? ((_text: string) => true))
   const forward = vi.fn(async (_target: SessionId, _text: string) => undefined)
-  const close = vi.fn()
-  const state = { open: true, focus }
+  const navigation = {
+    params: options.select === undefined ? {} : { select: options.select },
+    revision: 0,
+  }
   const props = {
     sessionId,
     useConversation: (<T,>(select: (snapshot: { views: { get: () => ChatSnapshot } }) => T): T =>
       select({ views: { get: () => chat() } })) as never,
     useSessions: (<T,>(select: (list: SessionListState) => T): T => select(sessions)) as never,
     inputActions: { insertQuote } as never,
-    usePicker: (<T,>(select: (picker: { open: boolean; focus: string | null }) => T): T => select(state)) as never,
-    close,
+    useTabInfo: () => ({ tab: { navigation } }),
     forward,
     t: translate,
-  } as QuoteDockProps
-  return { ...render(<QuoteDock {...props} />), insertQuote, forward, close, state }
+  } as QuoteDrawerProps
+  const ui = render(<QuoteDrawer {...props} />)
+  return {
+    ...ui,
+    insertQuote,
+    forward,
+    navigate(select: string) {
+      navigation.params = { select }
+      navigation.revision += 1
+      ui.rerender(<QuoteDrawer {...props} />)
+    },
+  }
 }
 
-describe('QuoteDock', () => {
+describe('QuoteDrawer', () => {
   it('toggles a row by clicking it and inserts one bounded bundle', () => {
     const ui = mount()
 
     fireEvent.click(ui.getByText('first'))
     expect(ui.getByText(count(1))).toBeTruthy()
-    fireEvent.click(ui.getByRole('button', { name: zh['drawer.insert'].replace('{count}', '1') }))
+    fireEvent.click(ui.getByRole('button', { name: insertName(1) }))
 
     expect(ui.insertQuote).toHaveBeenCalledOnce()
     expect(ui.insertQuote.mock.calls[0]![0]).toContain('<quoted_messages')
+    expect(ui.insertQuote.mock.calls[0]![0]).toContain('source_session="session-1"')
     expect(ui.insertQuote.mock.calls[0]![0]).toContain('first')
     expect(ui.getByText(zh['drawer.inserted'])).toBeTruthy()
     expect(ui.getByText(count(0))).toBeTruthy()
   })
 
-  it('preselects the held assistant message', async () => {
-    const ui = mount('message-2')
+  it('preselects the message the opener navigated to', async () => {
+    const ui = mount({ select: 'message-2' })
 
     await waitFor(() => { expect(ui.getByText(count(1))).toBeTruthy() })
-    fireEvent.click(ui.getByRole('button', { name: zh['drawer.insert'].replace('{count}', '1') }))
+    fireEvent.click(ui.getByRole('button', { name: insertName(1) }))
     expect(ui.insertQuote.mock.calls[0]![0]).toContain('second')
+  })
+
+  it('replaces the selection when the tab is navigated again', async () => {
+    const ui = mount()
+
+    fireEvent.click(ui.getByText('first'))
+    ui.navigate('message-2')
+
+    await waitFor(() => { expect(ui.getByText(count(1))).toBeTruthy() })
+    fireEvent.click(ui.getByRole('button', { name: insertName(1) }))
+    expect(ui.insertQuote.mock.calls[0]![0]).toContain('second')
+    expect(ui.insertQuote.mock.calls[0]![0]).not.toContain('first')
   })
 
   it('filters rows, toggles all shown rows, and reports an empty search', () => {
@@ -146,7 +175,7 @@ describe('QuoteDock', () => {
     expect(ui.getByText(zh['drawer.noResults'])).toBeTruthy()
   })
 
-  it('forwards the selection to another Session from the second footer action', async () => {
+  it('forwards the selection to another Session', async () => {
     const ui = mount()
     fireEvent.click(ui.getByText('first'))
     fireEvent.click(ui.getByRole('button', { name: zh['drawer.forward'] }))
@@ -163,21 +192,12 @@ describe('QuoteDock', () => {
     expect(await ui.findByText(zh['drawer.forwarded'].replace('{title}', 'Target'))).toBeTruthy()
   })
 
-  it('keeps the picker open and reports an insert refusal', () => {
-    const ui = mount()
+  it('reports an insert refusal and keeps the selection', () => {
+    const ui = mount({ insertQuote: () => false })
     fireEvent.click(ui.getByText('first'))
-    ui.insertQuote.mockImplementation(() => false)
-    fireEvent.click(ui.getByRole('button', { name: zh['drawer.insert'].replace('{count}', '1') }))
-    fireEvent.click(ui.getByRole('button', { name: zh['drawer.insert'].replace('{count}', '1') }))
+    fireEvent.click(ui.getByRole('button', { name: insertName(1) }))
 
     expect(ui.getByRole('alert').textContent).toBe(zh['drawer.insertFailed'])
-  })
-
-  it('closes through the single header control', () => {
-    const ui = mount()
-
-    fireEvent.click(ui.getByRole('button', { name: zh['drawer.close'] }))
-
-    expect(ui.close).toHaveBeenCalledOnce()
+    expect(ui.getByText(count(1))).toBeTruthy()
   })
 })
