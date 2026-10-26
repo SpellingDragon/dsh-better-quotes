@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0 - 2026-10-26
+
+### Changed
+
+- Replaced the Session-header modal with a right-sidebar Quotes drawer.
+- Added a Quotes action between Copy and Fork on finalized assistant messages; it opens the drawer with that message preselected.
+- Quote insertion now emits one bounded `<quoted_messages>` bundle instead of one Markdown quote per message.
+- Sent bundles render as an expandable bundle card with per-message source locate.
+
+### Added
+
+- Cross-Session forwarding from the same drawer, with a target Session picker.
+- Bundle parsing and a custom UserText rule for raw and blockquoted bundles.
+- Forwarded bundle cards labeled **From another session**.
+- Search and filtered select-all inside the drawer.
+- Drawer mode switch for Quote vs Forward.
+
+### Fixed
+
+- Quote actions no longer interrupt the conversation with a centered modal.
+- Bound bundles against early closing-tag injection from message text.
+
 ## 0.1.0 - 2026-10-26
 
 ### Added

@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
-/** The browser entry registers its header action, styles, and locale, then removes them with the fiber. */
+/** The browser entry registers the drawer, bundle card, assistant action, and forwarding verb. */
 import { describe, expect, it, vi } from 'vitest'
-import { apply, inject } from '../src/client/index.ts'
+import { MessageId } from '@deepseek-ai/dsh-llm'
+import { SessionId } from '@deepseek-ai/dsh-session/types'
+import { apply, inject, TAB_ID, TAB_KIND } from '../src/client/index.ts'
 import { NS, zh } from '../src/client/locales.ts'
+import { BUNDLE_RULE_ID } from '../src/client/quote-rule.ts'
 import { apply as hostApply } from '../src/index.ts'
 
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
@@ -11,9 +14,10 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
     Button: Stub,
     Checkbox: Stub,
     Input: Stub,
-    Modal: Stub,
+    SegmentedControl: Stub,
     Tag: Stub,
-    IconChecklistOutlineRegular: Stub,
+    Tooltip: Stub,
+    IconContextInjectionOutlineRegular: Stub,
     IconLinkOutlineRegular: Stub,
     IconPaperclipOutlineRegular: Stub,
     IconSearchOutlineRegular: Stub,
@@ -23,22 +27,50 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
 })
 
 describe('dsh-better-quotes browser plugin', () => {
-  it('registers the header action, stylesheet, and localized copy, then removes them', () => {
+  it('registers every surface and forwards through the sessions service', async () => {
     hostApply()
-    const entries: { options: Record<string, unknown>; component: unknown }[] = []
-    const disposers: (() => void)[] = []
+    const effects: (() => void)[] = []
+    const entries: Record<string, { options: Record<string, unknown>; component: unknown }[]> = {}
+    const prompt = vi.fn(async () => ({ ok: true as const, value: { accepted: true as const } }))
+    const using = vi.fn(async (
+      _target: SessionId,
+      _options: unknown,
+      operation: (reference: unknown) => Promise<unknown>,
+    ) => operation({ binding: { session: { prompt } } }))
+    const list = {
+      getSnapshot: () => ({ ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {} }),
+      subscribe: () => () => undefined,
+    }
+    interface TabDefinition {
+      id: string
+      kind: string
+      title: () => string
+      guide: readonly { title: () => string; description: () => string }[]
+    }
+    const registerTab = vi.fn((_definition: TabDefinition) => () => undefined)
+    const openTab = vi.fn()
+    const registerRule = vi.fn(() => () => undefined)
     const registerLocale = vi.fn(() => () => undefined)
     const ctx = {
       effect: (run: () => (() => void) | void) => {
         const dispose = run()
-        if (typeof dispose === 'function') disposers.push(dispose)
+        if (typeof dispose === 'function') effects.push(dispose)
         return dispose
       },
-      locale: { register: registerLocale },
+      locale: {
+        register: registerLocale,
+        bind: () => (key: keyof typeof zh) => zh[key],
+      },
+      uiConversation: { userText: { register: registerRule } },
+      sessions: { list, using },
+      sidebarRight: { openTab },
+      sidebarRightTabs: { register: registerTab },
       slots: {
         inject: (_name: string, register: () => () => void) => register(),
         register: (options: Record<string, unknown>, component: unknown) => {
-          entries.push({ options, component })
+          const name = String(options.name)
+          entries[name] ??= []
+          entries[name]!.push({ options, component })
           return () => undefined
         },
       },
@@ -46,14 +78,44 @@ describe('dsh-better-quotes browser plugin', () => {
 
     apply(ctx as never)
 
-    expect(inject).toEqual(['slots', 'locale'])
-    expect(entries).toHaveLength(1)
-    expect(entries[0]!.options).toMatchObject({ id: 'dsh-better-quotes', locale: NS })
-    expect(entries[0]!.component).toBeTypeOf('function')
+    expect(inject).toEqual(['slots', 'locale', 'uiConversation', 'sessions', 'sidebarRight', 'sidebarRightTabs'])
     expect(registerLocale).toHaveBeenCalledWith(NS, expect.objectContaining({ zh }))
+    expect(registerRule).toHaveBeenCalledWith(expect.objectContaining({ id: BUNDLE_RULE_ID }))
     expect(document.getElementById('dsh-better-quotes-styles')).not.toBeNull()
 
-    for (const dispose of disposers) dispose()
+    const definition = registerTab.mock.calls[0]![0]
+    expect(definition.id).toBe(TAB_ID)
+    expect(definition.kind).toBe(TAB_KIND)
+    expect(definition.title()).toBe(zh['tab.title'])
+    expect(definition.guide[0]?.description()).toBe(zh['tab.description'])
+
+    const drawer = entries['sidebar.right.pane.tab']?.[0]
+    expect(drawer?.options.key).toBe(TAB_ID)
+    const drawerFace = (drawer?.options.inject as (() => {
+      hooks: { sessionList: unknown }
+      forward: (target: SessionId, text: string) => Promise<void>
+    }) | undefined)?.()
+    expect(drawerFace?.hooks.sessionList).toBe(list)
+    await drawerFace?.forward(SessionId('session-2'), 'forwarded')
+    expect(using).toHaveBeenCalledWith(
+      SessionId('session-2'),
+      { source: 'betterQuotes' },
+      expect.any(Function),
+    )
+    expect(prompt).toHaveBeenCalledWith([{ type: 'text', text: 'forwarded' }], 'queue')
+
+    const card = entries['conversation.user.text.node']?.[0]
+    expect(card?.options.key).toBe(BUNDLE_RULE_ID)
+
+    const action = entries['conversation.chat.assistant-actions']?.[0]
+    expect(action?.options.id).toBe('better-quotes')
+    const actionFace = (action?.options.inject as (() => {
+      openQuotes: (messageId: string) => void
+    }) | undefined)?.()
+    actionFace?.openQuotes(MessageId('message-1'))
+    expect(openTab).toHaveBeenCalledWith(TAB_KIND, { params: { select: 'message-1' } })
+
+    for (const dispose of effects) dispose()
     expect(document.getElementById('dsh-better-quotes-styles')).toBeNull()
   })
 })

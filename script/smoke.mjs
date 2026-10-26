@@ -40,5 +40,7 @@ vm.runInThisContext(readFileSync(new URL('../lib/client.js', import.meta.url), '
 
 if (loaded === undefined) throw new Error('module loader did not run')
 if (typeof loaded.apply !== 'function') throw new Error('apply is missing')
-if (!Array.isArray(loaded.inject) || loaded.inject.join(',') !== 'slots,locale') throw new Error('inject is wrong')
+if (!Array.isArray(loaded.inject) || loaded.inject.join(',') !== 'slots,locale,uiConversation,sessions,sidebarRight,sidebarRightTabs') {
+  throw new Error('inject is wrong')
+}
 console.log('bundle smoke ok:', Object.keys(loaded).join(','))
