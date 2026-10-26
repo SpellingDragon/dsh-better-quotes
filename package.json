@@ -1,0 +1,105 @@
+{
+  "name": "dsh-better-quotes",
+  "version": "0.1.0",
+  "description": "Multi-select message quoting with durable sender, time, identity, attachment, and skill metadata for DeepSeek Harness Web",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "quote",
+    "multi-select",
+    "metadata"
+  ],
+  "author": "SpellingDragon",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpellingDragon/dsh-better-quotes.git"
+  },
+  "homepage": "https://github.com/SpellingDragon/dsh-better-quotes#readme",
+  "bugs": {
+    "url": "https://github.com/SpellingDragon/dsh-better-quotes/issues"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.1-rc.3 <0.3.0-0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-session"
+      ]
+    },
+    "engines": {
+      "dsh": ">=0.2.1-rc.3 <0.3.0-0"
+    },
+    "compatibility": {
+      "dsh": ">=0.2.1-rc.3 <0.3.0-0"
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.5",
+    "@deepseek-ai/dsh-api-session-controller": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-locale": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-chat": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-session": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-session": "0.2.1-rc.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.11"
+  },
+  "scripts": {
+    "build": "node script/build.mjs && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run build",
+    "pack": "npm pack"
+  }
+}
