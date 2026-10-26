@@ -1,11 +1,27 @@
 # dsh-better-quotes
 
+[![npm version](https://img.shields.io/npm/v/dsh-better-quotes.svg)](https://www.npmjs.com/package/dsh-better-quotes)
 [![CI](https://github.com/SpellingDragon/dsh-better-quotes/actions/workflows/ci.yml/badge.svg)](https://github.com/SpellingDragon/dsh-better-quotes/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-在 DeepSeek Harness Web 中引用或转发整条消息：Fork 旁一个动作，右侧边栏选择器，发送后得到一个默认折叠、模型可读可回查的 bundle 卡。
+<p align="center">
+  <img src="https://raw.githubusercontent.com/SpellingDragon/dsh-better-quotes/main/assets/social-card.png" alt="dsh-better-quotes — DeepSeek Harness 整条消息引用" width="100%">
+</p>
 
-点击 Copy 与 Fork 之间的引用图标，该消息立即进入输入框；长按同一个图标即可在右侧边栏「引用」标签页中多选用户和助手消息，一次性引用，或把同一个 bundle 转发给另一个本地 Session。
+**在 DeepSeek Harness Web 中引用或转发整条消息——一次点击，一个 bundle，模型回查所需的全部身份。**
+
+官方划词引用只复制文本片段，转头就忘了它从哪来。本插件引用**整条消息**——用户、插话或助手——连同发送人、时间、身份、模型路由、Skill、引用和附件，打成一个模型可读、可回查的有界 bundle。
+
+## 特点
+
+- **一个控件，两种结果。** 点击 Copy 与 Fork 之间的引用图标立即引用该消息；长按（或按 `Shift+Enter`）进入多选。会话区不增加任何复选框或工具条。
+- **整条消息多选。** 在右侧边栏「引用」标签页里自由多选用户、插话和已完成的助手消息；选择过程中对话区不动、不白屏、不被遮挡。
+- **持久元数据。** 每条被引用的消息都带发送人角色、时间、`session_id`、`seq`、`message_id`、provider/model、已加载 Skill、`@session` 引用，以及含名称、大小和尺寸的图片/文件附件。
+- **一个有界 bundle。** 单个 `<quoted_messages>` 信封替代 N 条散落的引用块——模型把引用当上下文读，并能按身份回查原事件。
+- **跨会话转发。** 从同一个面板把同一个 bundle 作为非指令参考上下文发给任意本地 Session。
+- **点击定位。** 发送后的引用卡默认折叠；点击条目滚动到原消息并短暂高亮，折叠的过程组会先展开。跨会话的卡会注明并隐藏来源导航。
+- **读得懂的引用芯片。** 输入框里显示一行摘要（引用条数与消息预览），而不是生硬的信封标签。
+- **本地优先。** 无外部请求、无遥测、无远程服务——一切都在你的 DSH 进程内运行。
 
 ## 快速开始
 
@@ -13,7 +29,7 @@
 npm ci
 npm run build
 npm pack
-dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.4.1.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.5.0.tgz
 ```
 
 从 DSH 源码仓库运行时把 `dsh plugin` 换成 `pnpm dsh plugin`。重启 `dsh web` 或刷新浏览器。支持 DSH `>=0.2.1-rc.3 <0.3.0-0`。
@@ -102,6 +118,7 @@ It fails because the migration dropped the index.
 
 - 一个控件承载两种结果：点击直接引用，长按进入多选。
 - 多选是 `sidebar.right.pane.tab` 标签页正文，选择消息时对话区保持不动。
+- 面板是一次事务：动作完成后收起侧边栏，再次进入列表停在最新消息。
 - 一个 bundle 替代 N 个散 quote，带来源、数量、顺序和逐条边界。
 - 引用卡默认折叠，点击条目即定位。
 - 定位会先展开折叠的过程组，再驱动真实滚动容器。
@@ -143,7 +160,7 @@ npm pack
 - `QuoteDrawer.tsx`、`QuoteRow.tsx` — 右侧边栏选择器与消息行。
 - `bundle.ts`、`quote-rule.ts`、`BundleQuote.tsx` — bundle 格式、解析与引用卡。
 - `locate.ts` — 展开与来源定位。
-- `tests/` — 36 个聚焦测试。
+- `tests/` — 41 个聚焦测试。
 
 ## 许可证
 

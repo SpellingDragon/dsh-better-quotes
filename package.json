@@ -1,14 +1,20 @@
 {
   "name": "dsh-better-quotes",
-  "version": "0.4.1",
-  "description": "Multi-select message quoting with durable sender, time, identity, attachment, and skill metadata for DeepSeek Harness Web",
+  "version": "0.5.0",
+  "description": "Quote or forward whole messages in DeepSeek Harness Web — one-action quoting, right-Sidebar multi-select, durable message metadata, and cross-session forwarding",
   "keywords": [
+    "deepseek-harness",
     "dsh",
     "dsh-plugin",
-    "deepseek-harness",
     "quote",
+    "quoting",
+    "message-quote",
     "multi-select",
-    "metadata"
+    "message-reference",
+    "cross-session",
+    "forwarding",
+    "ai-agent",
+    "plugin"
   ],
   "author": "SpellingDragon",
   "repository": {
