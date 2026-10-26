@@ -12,7 +12,7 @@ import { BundleQuote } from './BundleQuote.tsx'
 import { QuoteAction, type QuoteActionInjected } from './QuoteAction.tsx'
 import { QuoteDrawer, type QuoteDrawerInjected } from './QuoteDrawer.tsx'
 import { en, NS, zh, type BetterQuotesKey } from './locales.ts'
-import { BUNDLE_RULE_ID, bundleQuoteRule } from './quote-rule.ts'
+import { BUNDLE_RULE_ID, createBundleQuoteRule } from './quote-rule.ts'
 import { installStyles } from './styles.ts'
 
 export type {} from './bundle.ts'
@@ -56,7 +56,7 @@ export function apply(ctx: Context): void {
   const t = ctx.locale.bind(NS)
   ctx.effect(() => installStyles(), 'dsh-better-quotes: styles')
   ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'dsh-better-quotes: dictionaries')
-  ctx.effect(() => ctx.uiConversation.userText.register(bundleQuoteRule), 'dsh-better-quotes: UserText rule')
+  ctx.effect(() => ctx.uiConversation.userText.register(createBundleQuoteRule(t)), 'dsh-better-quotes: UserText rule')
   ctx.effect(() => ctx.sidebarRightTabs.register({
     id: TAB_ID,
     kind: TAB_KIND,

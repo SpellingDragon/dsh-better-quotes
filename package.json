@@ -1,6 +1,6 @@
 {
   "name": "dsh-better-quotes",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Multi-select message quoting with durable sender, time, identity, attachment, and skill metadata for DeepSeek Harness Web",
   "keywords": [
     "dsh",

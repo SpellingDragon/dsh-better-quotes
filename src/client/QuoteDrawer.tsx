@@ -5,7 +5,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { formatBundle, formatForwardPrompt } from './bundle.ts'
+import { formatBundle, formatDraftQuote, formatForwardPrompt } from './bundle.ts'
 import { collectCandidates, type QuoteCandidate } from './candidates.ts'
 import { insertQuoteText } from './input.ts'
 import type { NS } from './locales.ts'
@@ -96,7 +96,7 @@ export function QuoteDrawer({
 
   const insert = (): void => {
     if (chosen.length === 0) return
-    if (!insertQuoteText(inputActions, formatBundle(chosen, sessionId))) {
+    if (!insertQuoteText(inputActions, formatDraftQuote(chosen, sessionId, t))) {
       setFailure('insert')
       setStatus(null)
       return

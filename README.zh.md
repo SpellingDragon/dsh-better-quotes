@@ -13,7 +13,7 @@
 npm ci
 npm run build
 npm pack
-dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.4.0.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.4.1.tgz
 ```
 
 从 DSH 源码仓库运行时把 `dsh plugin` 换成 `pnpm dsh plugin`。重启 `dsh web` 或刷新浏览器。支持 DSH `>=0.2.1-rc.3 <0.3.0-0`。
@@ -28,7 +28,7 @@ dsh plugin --profile web add dsh-better-quotes
 
 ### 单条引用
 
-点击 Copy 与 Fork 之间的引用图标，消息立即进入输入框，交互与官方划词引用一致。
+点击 Copy 与 Fork 之间的引用图标，消息立即进入输入框，交互与官方划词引用一致。引用芯片显示一行摘要（引用条数与消息预览），bundle 附在同一个引用里。
 
 ### 多条引用或转发
 
@@ -43,7 +43,7 @@ dsh plugin --profile web add dsh-better-quotes
 
 ## Bundle 格式
 
-一次插入生成一个信封：
+一次插入生成一个信封；输入框草稿在其前加上引用芯片显示的摘要行，发送后该行并入引用卡，会话里只显示卡：
 
 ```xml
 <quoted_messages version="1" source_session="…" count="2">

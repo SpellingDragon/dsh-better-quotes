@@ -37,7 +37,11 @@ function mount() {
       select({ views: { get: () => chat } })) as never,
     inputActions: { insertQuote } as never,
     openQuotes,
-    t: ((key: string) => (zh as Readonly<Record<string, string>>)[key] ?? key) as QuoteActionProps['t'],
+    t: ((key: string, params?: Readonly<Record<string, string | number>>) => {
+      let text = (zh as Readonly<Record<string, string>>)[key] ?? key
+      for (const [name, value] of Object.entries(params ?? {})) text = text.replace(`{${name}}`, String(value))
+      return text
+    }) as QuoteActionProps['t'],
   } as QuoteActionProps
   return { ...render(<QuoteAction {...props} />), insertQuote, openQuotes }
 }
@@ -49,8 +53,10 @@ describe('QuoteAction', () => {
     fireEvent.click(ui.getByRole('button', { name: zh['action.quote'] }))
 
     expect(ui.insertQuote).toHaveBeenCalledOnce()
-    expect(ui.insertQuote.mock.calls[0]![0]).toContain('<quoted_messages')
-    expect(ui.insertQuote.mock.calls[0]![0]).toContain('second')
+    const text = ui.insertQuote.mock.calls[0]![0]
+    expect(text.startsWith(`${zh['bundle.title'].replace('{count}', '1')} · second`)).toBe(true)
+    expect(text).toContain('<quoted_messages')
+    expect(text).toContain('second')
     expect(ui.openQuotes).not.toHaveBeenCalled()
   })
 

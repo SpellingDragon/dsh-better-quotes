@@ -13,7 +13,7 @@ Click the quote icon between Copy and Fork to insert that message immediately. H
 npm ci
 npm run build
 npm pack
-dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.4.0.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-better-quotes-0.4.1.tgz
 ```
 
 From a DSH source checkout, use `pnpm dsh plugin` instead of `dsh plugin`. Restart `dsh web` or refresh the browser. The package targets DSH `>=0.2.1-rc.3 <0.3.0-0`.
@@ -28,7 +28,7 @@ dsh plugin --profile web add dsh-better-quotes
 
 ### Quote one message
 
-Click the icon between Copy and Fork. The message enters the composer immediately, matching the official select-to-quote interaction.
+Click the icon between Copy and Fork. The message enters the composer immediately, matching the official select-to-quote interaction. The quote chip shows a one-line summary — quoted count and message previews — and carries the bundle inside the same quote.
 
 ### Quote or forward several
 
@@ -43,7 +43,7 @@ Sent bundle cards start folded. Expand one and click a same-Session item to scro
 
 ## Bundle format
 
-One insert creates one envelope:
+One insert creates one envelope; the composer draft prefixes the summary line its quote chip shows, and once sent the card owns that line so the transcript shows only the card:
 
 ```xml
 <quoted_messages version="1" source_session="…" count="2">

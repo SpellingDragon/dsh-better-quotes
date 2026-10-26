@@ -1,6 +1,11 @@
 /** Structured quoted-message bundle format shared by quoting, forwarding, and rendering. */
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { QuoteAttachment, QuoteCandidate } from './candidates.ts'
+import type { NS } from './locales.ts'
+
+/** Locale-bound translate for the draft summary line. */
+type Translate = PropsLocale<typeof NS>['t']
 
 /** One attachment reference retained for the bundle card. */
 export interface BundleAttachment {
@@ -37,6 +42,10 @@ const ATTRIBUTE = /([a-z_]+)=(?:"((?:[^"\\]|\\.)*)"|(\S+))/gu
 const METADATA = /^\s*<metadata\b([^>]*)>([\s\S]*?)<\/metadata>\s*/u
 const CHILD = /<(skill|reference)\b([^>]*)\/>/gu
 
+/** Preview excerpts and per-excerpt length the draft summary line shows. */
+const PREVIEW_ITEMS = 2
+const PREVIEW_CHARS = 24
+
 /**
  * Serialize selected messages as one bounded Markdown-friendly bundle.
  * @param candidates - selected messages in log order.
@@ -50,6 +59,39 @@ export function formatBundle(candidates: readonly QuoteCandidate[], sessionId: S
     items,
     '</quoted_messages>',
   ].join('\n')
+}
+
+/**
+ * Compose one composer quote: the summary line the quote chip shows, then the bundle.
+ * @param candidates - selected messages in log order.
+ * @param sessionId - Session that owns the selected messages.
+ * @param t - locale-bound translate for the summary labels.
+ * @returns draft text for the atomic quote node.
+ */
+export function formatDraftQuote(
+  candidates: readonly QuoteCandidate[],
+  sessionId: SessionId,
+  t: Translate,
+): string {
+  const bodies = candidates.map(bodyOf)
+  return `${bundleSummary(candidates.length, bodies, t)}\n${formatBundle(candidates, sessionId)}`
+}
+
+/**
+ * Summarize one bundle on a single line.
+ *
+ * The composer quote chip renders its text as one clipped line, so the summary
+ * leads the draft text; the bundle rule regenerates this line to own it in the
+ * transcript once sent.
+ * @param count - messages in the bundle.
+ * @param texts - message bodies as written into the bundle.
+ * @param t - locale-bound translate for the summary labels.
+ * @returns one summary line.
+ */
+export function bundleSummary(count: number, texts: readonly string[], t: Translate): string {
+  const shown = texts.slice(0, PREVIEW_ITEMS).map(preview).join(' / ')
+  const more = texts.length > PREVIEW_ITEMS ? ' …' : ''
+  return `${t('bundle.title', { count })} · ${shown}${more}`
 }
 
 /**
@@ -101,7 +143,7 @@ function formatItem(candidate: QuoteCandidate, sessionId: SessionId): string {
     `session_id=${quote(String(sessionId))}`,
   ]
   const metadata = formatMetadata(candidate)
-  const body = neutralize(candidate.text.trim() === '' ? '(no text)' : candidate.text.trim())
+  const body = bodyOf(candidate)
   const attachments = candidate.attachments.map(formatAttachmentLine)
   return [
     `<quoted_message ${attributes.join(' ')}>`,
@@ -228,6 +270,18 @@ function parseAttributes(raw: string): Record<string, string> {
 
 function neutralize(text: string): string {
   return text.replace(/<\/?quoted_messages?/giu, match => match.replace('<', '&lt;'))
+}
+
+/** One message body as the bundle writes it: trimmed, empty bodies named, boundary tags neutralized. */
+function bodyOf(candidate: QuoteCandidate): string {
+  return neutralize(candidate.text.trim() === '' ? '(no text)' : candidate.text.trim())
+}
+
+/** The first line of one body, shortened to fit the summary line. */
+function preview(text: string): string {
+  const first = text.split('\n', 1)[0] ?? ''
+  const characters = [...first]
+  return characters.length <= PREVIEW_CHARS ? first : `${characters.slice(0, PREVIEW_CHARS).join('')}…`
 }
 
 function quote(value: string): string {

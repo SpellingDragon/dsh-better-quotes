@@ -133,9 +133,11 @@ describe('QuoteDrawer', () => {
     fireEvent.click(ui.getByRole('button', { name: insertName(1) }))
 
     expect(ui.insertQuote).toHaveBeenCalledOnce()
-    expect(ui.insertQuote.mock.calls[0]![0]).toContain('<quoted_messages')
-    expect(ui.insertQuote.mock.calls[0]![0]).toContain('source_session="session-1"')
-    expect(ui.insertQuote.mock.calls[0]![0]).toContain('first')
+    const text = ui.insertQuote.mock.calls[0]![0]
+    expect(text.startsWith(`${zh['bundle.title'].replace('{count}', '1')} · first`)).toBe(true)
+    expect(text).toContain('<quoted_messages')
+    expect(text).toContain('source_session="session-1"')
+    expect(text).toContain('first')
     expect(ui.getByText(zh['drawer.inserted'])).toBeTruthy()
     expect(ui.getByText(count(0))).toBeTruthy()
   })

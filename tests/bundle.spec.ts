@@ -1,11 +1,23 @@
 /** Bundle serialization and parsing carry identity, multimodal facts, and safe boundaries. */
 import { describe, expect, it } from 'vitest'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { QuoteCandidate } from '../src/client/candidates.ts'
-import { formatBundle, formatForwardPrompt, parseBundle } from '../src/client/bundle.ts'
+import { formatBundle, formatDraftQuote, formatForwardPrompt, parseBundle } from '../src/client/bundle.ts'
+import { zh, type NS } from '../src/client/locales.ts'
 
 const sessionId = SessionId('session-1')
 const time = Date.UTC(2026, 9, 26, 4, 5, 6, 789)
+
+const translate = ((key: string, params?: Readonly<Record<string, string | number>>) => {
+  let text = (zh as Readonly<Record<string, string>>)[key] ?? key
+  for (const [name, value] of Object.entries(params ?? {})) text = text.replace(`{${name}}`, String(value))
+  return text
+}) as PropsLocale<typeof NS>['t']
+
+function title(count: number): string {
+  return zh['bundle.title'].replace('{count}', String(count))
+}
 
 function candidate(overrides: Partial<QuoteCandidate> = {}): QuoteCandidate {
   return {
@@ -114,5 +126,28 @@ describe('formatBundle / parseBundle', () => {
   it('returns undefined for absent or empty envelopes', () => {
     expect(parseBundle('no bundle here')).toBeUndefined()
     expect(parseBundle('<quoted_messages source_session="s" count="0"></quoted_messages>')).toBeUndefined()
+  })
+})
+
+describe('formatDraftQuote', () => {
+  it('leads with the summary line the quote chip shows, then the unchanged bundle', () => {
+    const draft = formatDraftQuote([candidate()], sessionId, translate)
+    const summary = draft.split('\n', 1)[0]!
+
+    expect(summary).toBe(`${title(1)} · hello`)
+    expect(draft.slice(summary.length + 1)).toBe(formatBundle([candidate()], sessionId))
+  })
+
+  it('previews message bodies and caps how much one summary line shows', () => {
+    const long = 'x'.repeat(40)
+    const draft = formatDraftQuote([
+      candidate({ text: long }),
+      candidate({ key: 'key-2', text: 'two' }),
+      candidate({ key: 'key-3', text: 'three' }),
+      candidate({ key: 'key-4', text: '   ' }),
+    ], sessionId, translate)
+
+    expect(draft.split('\n', 1)[0]).toBe(`${title(4)} · ${'x'.repeat(24)}… / two …`)
+    expect(draft).toContain('(no text)')
   })
 })

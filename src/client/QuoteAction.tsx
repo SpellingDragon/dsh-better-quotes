@@ -3,7 +3,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { IconContextInjectionOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MessageId } from '@deepseek-ai/dsh-llm'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { formatBundle } from './bundle.ts'
+import { formatDraftQuote } from './bundle.ts'
 import { assistantCandidateByMessage } from './candidates.ts'
 import { insertQuoteText } from './input.ts'
 import type { NS } from './locales.ts'
@@ -45,7 +45,7 @@ export function QuoteAction({ messageId, sessionId, useConversation, inputAction
   const quoteNow = (): void => {
     const candidate = assistantCandidateByMessage(chat, String(messageId))
     if (candidate === undefined) return
-    insertQuoteText(inputActions, formatBundle([candidate], sessionId))
+    insertQuoteText(inputActions, formatDraftQuote([candidate], sessionId, t))
   }
   const label = t('action.quote')
   return (
