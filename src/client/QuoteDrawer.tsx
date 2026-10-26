@@ -1,5 +1,5 @@
 /** Right-Sidebar tab body: select messages, quote them into the composer, or forward them. */
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Button, IconSearchOutlineRegular, Input,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -11,8 +11,10 @@ import { insertQuoteText } from './input.ts'
 import type { NS } from './locales.ts'
 import { QuoteRow } from './QuoteRow.tsx'
 
-/** Cross-Session forwarding injected by the browser plugin. */
+/** Operations injected by the browser plugin. */
 export interface QuoteDrawerInjected {
+  /** Collapse the right-Sidebar column when it is expanded. */
+  readonly collapse: () => void
   /**
    * Send one forwarded bundle into a target Session.
    * @param targetId - target Session.
@@ -29,15 +31,14 @@ export type QuoteDrawerProps =
 
 type Step = 'select' | 'target'
 type Failure = 'insert' | 'forward'
-type Status = 'inserted' | 'forwarded'
 
 /**
  * Render the quotes tab: select messages, then insert one quote bundle or forward it.
- * @param props - tab navigation, Chat/Session seats, input actions, forwarding verb, and copy.
+ * @param props - tab navigation, Chat/Session seats, input actions, panel verbs, and copy.
  * @returns the tab body.
  */
 export function QuoteDrawer({
-  sessionId, useConversation, useSessions, inputActions, useTabInfo, forward, t,
+  sessionId, useConversation, useSessions, inputActions, useTabInfo, collapse, forward, t,
 }: QuoteDrawerProps): ReactNode {
   const tabInfo = useTabInfo()
   const chat = useConversation(snapshot => snapshot.views.get('chat'))
@@ -48,10 +49,9 @@ export function QuoteDrawer({
   const [selectedKeys, setSelectedKeys] = useState<ReadonlySet<string>>(() => new Set())
   const [targetId, setTargetId] = useState<SessionId | undefined>()
   const [failure, setFailure] = useState<Failure | null>(null)
-  const [status, setStatus] = useState<Status | null>(null)
-  const [forwardedTo, setForwardedTo] = useState('')
   const [sending, setSending] = useState(false)
   const [pendingSelect, setPendingSelect] = useState<string | undefined>()
+  const listRef = useRef<HTMLUListElement | null>(null)
 
   const candidates = useMemo(() => collectCandidates(chat), [chat])
   const filtered = useMemo(() => {
@@ -89,6 +89,12 @@ export function QuoteDrawer({
     setSelectedKeys(new Set([candidate.key]))
     setPendingSelect(undefined)
   }, [candidates, pendingSelect])
+  useEffect(() => {
+    if (!tabInfo.tab.visible) return
+    const list = listRef.current
+    if (list === null) return
+    list.scrollTop = list.scrollHeight
+  }, [tabInfo.tab.visible])
 
   const toggleAll = (): void => {
     setSelectedKeys(allShown ? new Set() : new Set(filtered.map(candidate => candidate.key)))
@@ -98,27 +104,23 @@ export function QuoteDrawer({
     if (chosen.length === 0) return
     if (!insertQuoteText(inputActions, formatDraftQuote(chosen, sessionId, t))) {
       setFailure('insert')
-      setStatus(null)
       return
     }
     setFailure(null)
-    setStatus('inserted')
     setSelectedKeys(new Set())
+    collapse()
   }
 
   const send = async (): Promise<void> => {
     if (targetId === undefined || chosen.length === 0 || sending) return
     setSending(true)
     setFailure(null)
-    setStatus(null)
     try {
-      const title = selectedTarget?.displayTitle ?? String(targetId)
       await forward(targetId, formatForwardPrompt(formatBundle(chosen, sessionId)))
-      setForwardedTo(title)
-      setStatus('forwarded')
       setStep('select')
       setSelectedKeys(new Set())
       setTargetId(undefined)
+      collapse()
     } catch {
       setFailure('forward')
     } finally {
@@ -199,19 +201,12 @@ export function QuoteDrawer({
               icon={<IconSearchOutlineRegular size={14} />}
             />
             {failureText !== null && <p className="bq-failure" role="alert">{failureText}</p>}
-            {status !== null && (
-              <p className="bq-status" role="status">
-                {status === 'inserted'
-                  ? t('drawer.inserted')
-                  : t('drawer.forwarded', { title: forwardedTo })}
-              </p>
-            )}
             {candidates.length === 0
               ? <p className="bq-empty">{t('drawer.empty')}</p>
               : filtered.length === 0
                 ? <p className="bq-empty">{t('drawer.noResults')}</p>
                 : (
-                  <ul className="bq-list">
+                  <ul className="bq-list" ref={listRef}>
                     {filtered.map(candidate => (
                       <QuoteRow
                         key={candidate.key}
@@ -237,7 +232,6 @@ export function QuoteDrawer({
                 onClick={() => {
                   setStep('target')
                   setFailure(null)
-                  setStatus(null)
                 }}
               >
                 {t('drawer.forward')}

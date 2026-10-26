@@ -94,20 +94,23 @@ function insertName(value: number): string {
   return zh['drawer.insert'].replace('{count}', String(value))
 }
 
-function mount(options: { select?: string; insertQuote?: (text: string) => boolean } = {}) {
+function mount(options: { select?: string; insertQuote?: (text: string) => boolean; visible?: boolean } = {}) {
   const insertQuote = vi.fn(options.insertQuote ?? ((_text: string) => true))
   const forward = vi.fn(async (_target: SessionId, _text: string) => undefined)
+  const collapse = vi.fn()
   const navigation = {
     params: options.select === undefined ? {} : { select: options.select },
     revision: 0,
   }
+  const tab = { navigation, visible: options.visible ?? true }
   const props = {
     sessionId,
     useConversation: (<T,>(select: (snapshot: { views: { get: () => ChatSnapshot } }) => T): T =>
       select({ views: { get: () => chat() } })) as never,
     useSessions: (<T,>(select: (list: SessionListState) => T): T => select(sessions)) as never,
     inputActions: { insertQuote } as never,
-    useTabInfo: () => ({ tab: { navigation } }),
+    useTabInfo: () => ({ tab }),
+    collapse,
     forward,
     t: translate,
   } as QuoteDrawerProps
@@ -116,9 +119,14 @@ function mount(options: { select?: string; insertQuote?: (text: string) => boole
     ...ui,
     insertQuote,
     forward,
+    collapse,
     navigate(select: string) {
       navigation.params = { select }
       navigation.revision += 1
+      ui.rerender(<QuoteDrawer {...props} />)
+    },
+    setVisible(visible: boolean) {
+      tab.visible = visible
       ui.rerender(<QuoteDrawer {...props} />)
     },
   }
@@ -138,8 +146,8 @@ describe('QuoteDrawer', () => {
     expect(text).toContain('<quoted_messages')
     expect(text).toContain('source_session="session-1"')
     expect(text).toContain('first')
-    expect(ui.getByText(zh['drawer.inserted'])).toBeTruthy()
     expect(ui.getByText(count(0))).toBeTruthy()
+    expect(ui.collapse).toHaveBeenCalledOnce()
   })
 
   it('preselects the message the opener navigated to', async () => {
@@ -191,7 +199,7 @@ describe('QuoteDrawer', () => {
       )
     })
     expect(ui.forward.mock.calls[0]![1]).toContain('<quoted_messages')
-    expect(await ui.findByText(zh['drawer.forwarded'].replace('{title}', 'Target'))).toBeTruthy()
+    expect(ui.collapse).toHaveBeenCalledOnce()
   })
 
   it('reports an insert refusal and keeps the selection', () => {
@@ -201,5 +209,17 @@ describe('QuoteDrawer', () => {
 
     expect(ui.getByRole('alert').textContent).toBe(zh['drawer.insertFailed'])
     expect(ui.getByText(count(1))).toBeTruthy()
+    expect(ui.collapse).not.toHaveBeenCalled()
+  })
+
+  it('jumps the message list to the newest messages whenever the tab becomes visible', () => {
+    const ui = mount({ visible: false })
+    const list = ui.container.querySelector('.bq-list')
+    if (list === null) throw new Error('message list expected')
+    Object.defineProperty(list, 'scrollHeight', { value: 420, configurable: true })
+
+    ui.setVisible(true)
+
+    expect(list.scrollTop).toBe(420)
   })
 })

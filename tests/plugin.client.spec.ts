@@ -43,6 +43,7 @@ describe('dsh-better-quotes browser plugin', () => {
     }
     const registerTab = vi.fn((_definition: TabDefinition) => () => undefined)
     const openTab = vi.fn()
+    const toggleExpanded = vi.fn()
     const registerRule = vi.fn(() => () => undefined)
     const registerLocale = vi.fn(() => () => undefined)
     const ctx = {
@@ -57,7 +58,7 @@ describe('dsh-better-quotes browser plugin', () => {
       },
       uiConversation: { userText: { register: registerRule } },
       sessions: { using },
-      sidebarRight: { openTab },
+      sidebarRight: { openTab, isExpanded: () => true, toggleExpanded },
       sidebarRightTabs: { register: registerTab },
       slots: {
         inject: (_name: string, register: () => () => void) => register(),
@@ -86,8 +87,11 @@ describe('dsh-better-quotes browser plugin', () => {
     const tab = entries['sidebar.right.pane.tab']?.[0]
     expect(tab?.options.key).toBe(TAB_ID)
     const tabFace = (tab?.options.inject as (() => {
+      collapse: () => void
       forward: (target: SessionId, text: string) => Promise<void>
     }) | undefined)?.()
+    tabFace?.collapse()
+    expect(toggleExpanded).toHaveBeenCalledOnce()
     await tabFace?.forward(SessionId('session-2'), 'forwarded')
     expect(using).toHaveBeenCalledWith(
       SessionId('session-2'),

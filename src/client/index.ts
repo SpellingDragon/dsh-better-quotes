@@ -81,7 +81,12 @@ export function apply(ctx: Context): void {
     name: 'sidebar.right.pane.tab',
     key: TAB_ID,
     locale: NS,
-    inject: (): QuoteDrawerInjected => ({ forward }),
+    inject: (): QuoteDrawerInjected => ({
+      collapse: () => {
+        if (ctx.sidebarRight.isExpanded()) ctx.sidebarRight.toggleExpanded()
+      },
+      forward,
+    }),
   }, QuoteDrawer)), 'dsh-better-quotes: quotes tab')
 
   ctx.effect(() => ctx.slots.inject('conversation.user.text.node', () => ctx.slots.register({

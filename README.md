@@ -33,8 +33,8 @@ Click the icon between Copy and Fork. The message enters the composer immediatel
 ### Quote or forward several
 
 1. Hold the same icon for half a second, or press `Shift+Enter`.
-2. The Quotes tab opens in the right Sidebar with that message selected. Click rows to toggle selection, search to narrow the list, and use the single all/none control for what is shown.
-3. Choose **Insert quote (N)** to place one bundle in the composer, or **Forward** to pick another local Session and send the same bundle.
+2. The Quotes tab opens in the right Sidebar with that message selected, its list starting at the newest messages. Click rows to toggle selection, search to narrow the list, and use the single all/none control for what is shown.
+3. Choose **Insert quote (N)** to place one bundle in the composer, or **Forward** to pick another local Session and send the same bundle. Either action collapses the Sidebar when it completes.
 4. The target excludes the current Session and subagent Sessions.
 
 ### Locate

@@ -6,6 +6,7 @@
 
 - A composer quote now leads with a one-line summary (message count and previews), so the quote chip reads as a label instead of raw envelope tags; the bundle the model receives is unchanged.
 - The bundle rule owns that summary line when the message is sent, so the transcript shows only the bundle card.
+- Inserting or forwarding a quote collapses the right Sidebar as soon as the action completes, and the message list starts at the newest messages whenever the tab becomes visible.
 
 ### Fixed
 
